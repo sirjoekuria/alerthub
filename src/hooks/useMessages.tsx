@@ -1,0 +1,114 @@
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
+export interface Message {
+  id: string;
+  user_id: string;
+  original_text: string;
+  amount: number | null;
+  sender_name: string | null;
+  transaction_date: string | null;
+  mpesa_code: string | null;
+  sms_sender: string;
+  is_read: boolean;
+  received_timestamp: string;
+  created_at: string;
+}
+
+export const useMessages = (userId: string | undefined) => {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchMessages = async () => {
+    if (!userId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('user_id', userId)
+        .order('received_timestamp', { ascending: false });
+
+      if (error) throw error;
+
+      setMessages(data || []);
+      setUnreadCount(data?.filter(m => !m.is_read).length || 0);
+    } catch (error: any) {
+      toast.error('Failed to fetch messages');
+      console.error('Error fetching messages:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMessages();
+  }, [userId]);
+
+  // Set up real-time subscription
+  useEffect(() => {
+    if (!userId) return;
+
+    const channel = supabase
+      .channel('messages-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload) => {
+          console.log('Real-time update:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            setMessages(prev => [payload.new as Message, ...prev]);
+            setUnreadCount(prev => prev + 1);
+            toast.success('New MPESA message received!');
+          } else if (payload.eventType === 'UPDATE') {
+            setMessages(prev => 
+              prev.map(msg => msg.id === payload.new.id ? payload.new as Message : msg)
+            );
+            fetchMessages(); // Refresh unread count
+          } else if (payload.eventType === 'DELETE') {
+            setMessages(prev => prev.filter(msg => msg.id !== payload.old.id));
+            fetchMessages();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId]);
+
+  const markAsRead = async (messageId: string) => {
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .update({ is_read: true })
+        .eq('id', messageId);
+
+      if (error) throw error;
+
+      setMessages(prev =>
+        prev.map(msg => msg.id === messageId ? { ...msg, is_read: true } : msg)
+      );
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error: any) {
+      console.error('Error marking message as read:', error);
+    }
+  };
+
+  return {
+    messages,
+    loading,
+    unreadCount,
+    markAsRead,
+    refetch: fetchMessages,
+  };
+};
