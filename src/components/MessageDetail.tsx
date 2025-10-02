@@ -33,19 +33,19 @@ export const MessageDetail = ({ message }: MessageDetailProps) => {
   };
 
   return (
-    <div className="h-full overflow-y-auto p-6 bg-background">
+    <div className="h-full overflow-y-auto p-3 md:p-6 bg-background">
       <Card className="max-w-3xl mx-auto">
-        <CardHeader>
+        <CardHeader className="p-4 md:p-6">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-2xl">Transaction Details</CardTitle>
+            <CardTitle className="text-xl md:text-2xl">Transaction Details</CardTitle>
             <Badge variant={message.is_read ? "secondary" : "default"}>
               {message.is_read ? "Read" : "Unread"}
             </Badge>
           </div>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4 md:space-y-6 p-4 md:p-6">
           {/* Transaction Info Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             <div className="space-y-2">
               <label className="text-sm font-medium text-muted-foreground">Amount</label>
               <p className="text-2xl font-bold text-primary">{formatCurrency(message.amount)}</p>

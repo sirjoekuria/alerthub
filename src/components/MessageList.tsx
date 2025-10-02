@@ -11,6 +11,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface MessageListProps {
   messages: Message[];
@@ -23,11 +30,16 @@ export const MessageList = ({ messages, onMarkAsRead }: MessageListProps) => {
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFilter, setSearchFilter] = useState<SearchFilter>("all");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const handleMessageClick = (message: Message) => {
     setSelectedMessage(message);
     if (!message.is_read) {
       onMarkAsRead(message.id);
+    }
+    if (isMobile) {
+      setDrawerOpen(true);
     }
   };
 
@@ -53,62 +65,76 @@ export const MessageList = ({ messages, onMarkAsRead }: MessageListProps) => {
   });
 
   return (
-    <div className="flex h-full">
-      {/* Message List */}
-      <div className="w-full md:w-96 border-r flex flex-col">
-        {/* Search Bar */}
-        <div className="p-4 border-b bg-card space-y-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Search messages..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
+    <>
+      <div className="flex h-full">
+        {/* Message List */}
+        <div className="w-full md:w-96 border-r flex flex-col">
+          {/* Search Bar */}
+          <div className="p-3 md:p-4 border-b bg-card space-y-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search messages..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={searchFilter} onValueChange={(value: SearchFilter) => setSearchFilter(value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Fields</SelectItem>
+                <SelectItem value="name">Sender Name</SelectItem>
+                <SelectItem value="amount">Amount</SelectItem>
+                <SelectItem value="code">Transaction Code</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <Select value={searchFilter} onValueChange={(value: SearchFilter) => setSearchFilter(value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Filter by..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Fields</SelectItem>
-              <SelectItem value="name">Sender Name</SelectItem>
-              <SelectItem value="amount">Amount</SelectItem>
-              <SelectItem value="code">Transaction Code</SelectItem>
-            </SelectContent>
-          </Select>
+
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto">
+            {filteredMessages.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground">
+                {searchQuery ? "No messages match your search" : "No messages yet"}
+              </div>
+            ) : (
+              filteredMessages.map((message) => (
+                <MessageListItem
+                  key={message.id}
+                  message={message}
+                  onClick={() => handleMessageClick(message)}
+                  isSelected={selectedMessage?.id === message.id}
+                />
+              ))
+            )}
+          </div>
         </div>
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto">
-          {filteredMessages.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">
-              {searchQuery ? "No messages match your search" : "No messages yet"}
-            </div>
+        {/* Desktop Message Detail */}
+        <div className="hidden md:block flex-1">
+          {selectedMessage ? (
+            <MessageDetail message={selectedMessage} />
           ) : (
-            filteredMessages.map((message) => (
-              <MessageListItem
-                key={message.id}
-                message={message}
-                onClick={() => handleMessageClick(message)}
-                isSelected={selectedMessage?.id === message.id}
-              />
-            ))
+            <div className="h-full flex items-center justify-center text-muted-foreground">
+              Select a message to view details
+            </div>
           )}
         </div>
       </div>
 
-      {/* Message Detail */}
-      <div className="hidden md:block flex-1">
-        {selectedMessage ? (
-          <MessageDetail message={selectedMessage} />
-        ) : (
-          <div className="h-full flex items-center justify-center text-muted-foreground">
-            Select a message to view details
+      {/* Mobile Message Detail Drawer */}
+      <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
+        <DrawerContent className="max-h-[85vh]">
+          <DrawerHeader>
+            <DrawerTitle>Transaction Details</DrawerTitle>
+          </DrawerHeader>
+          <div className="overflow-y-auto">
+            {selectedMessage && <MessageDetail message={selectedMessage} />}
           </div>
-        )}
-      </div>
-    </div>
+        </DrawerContent>
+      </Drawer>
+    </>
   );
 };
