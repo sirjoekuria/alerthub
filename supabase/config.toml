@@ -1,1 +1,4 @@
 project_id = "gcasrjukhfiwbpfrdlaw"
+
+[functions.sms-ingest]
+verify_jwt = false
