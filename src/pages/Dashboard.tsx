@@ -56,7 +56,7 @@ const Dashboard = () => {
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar */}
-        <aside className="w-64 border-r bg-sidebar p-4 space-y-4">
+        <aside className="w-64 border-r bg-sidebar p-4 space-y-4 overflow-y-auto">
           <div className="space-y-2">
             <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-sidebar-accent">
               <span className="font-semibold text-sidebar-accent-foreground">MPESA Inbox</span>
@@ -68,6 +68,19 @@ const Dashboard = () => {
             </div>
             <div className="px-3 py-2 text-sm text-sidebar-foreground">
               <p>Total Messages: {messages.length}</p>
+            </div>
+          </div>
+
+          {/* User ID Section */}
+          <div className="space-y-2 pt-4 border-t">
+            <div className="px-3">
+              <p className="text-xs font-semibold text-sidebar-foreground mb-2">Your User ID</p>
+              <div className="bg-sidebar-accent/50 rounded p-2 break-all">
+                <code className="text-xs text-sidebar-accent-foreground">{user?.id}</code>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Use this ID in your SMS forwarder app or include it in the JSON payload as "userId".
+              </p>
             </div>
           </div>
         </aside>
