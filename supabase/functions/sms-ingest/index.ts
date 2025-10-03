@@ -33,12 +33,17 @@ function parseMPESAMessage(message: string) {
 
   let transactionDate = null;
   if (dateMatch) {
-    const dateStr = dateMatch[1];
-    const timeStr = dateMatch[2];
-    // Parse date in format DD/MM/YY or DD/MM/YYYY
-    const [day, month, year] = dateStr.split('/');
-    const fullYear = year.length === 2 ? `20${year}` : year;
-    transactionDate = new Date(`${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${timeStr}`).toISOString();
+    try {
+      const dateStr = dateMatch[1];
+      const timeStr = dateMatch[2];
+      // Parse date in format DD/MM/YY or DD/MM/YYYY
+      const [day, month, year] = dateStr.split('/');
+      const fullYear = year.length === 2 ? `20${year}` : year;
+      transactionDate = new Date(`${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${timeStr}`).toISOString();
+    } catch (error) {
+      console.log('Failed to parse transaction date:', error);
+      transactionDate = null;
+    }
   }
 
   return {
