@@ -1,15 +1,53 @@
+import { useRef } from "react";
 import { Message } from "@/hooks/useMessages";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface MessageListItemProps {
   message: Message;
   onClick: () => void;
   isSelected: boolean;
+  selectionMode?: boolean;
+  selected?: boolean;
+  onSelectToggle?: (checked: boolean) => void;
+  onLongPress?: () => void;
 }
 
-export const MessageListItem = ({ message, onClick, isSelected }: MessageListItemProps) => {
+export const MessageListItem = ({
+  message,
+  onClick,
+  isSelected,
+  selectionMode = false,
+  selected = false,
+  onSelectToggle,
+  onLongPress,
+}: MessageListItemProps) => {
+  const pressTimer = useRef<number | null>(null);
+
+  const handlePointerDown = () => {
+    if (!onLongPress) return;
+    pressTimer.current = window.setTimeout(() => {
+      onLongPress();
+    }, 500);
+  };
+
+  const clearPressTimer = () => {
+    if (pressTimer.current) {
+      clearTimeout(pressTimer.current);
+      pressTimer.current = null;
+    }
+  };
+
+  const handleClick = () => {
+    if (selectionMode) {
+      onSelectToggle?.(!selected);
+    } else {
+      onClick();
+    }
+  };
+
   const formatCurrency = (amount: number | null) => {
     if (!amount) return "N/A";
     return `Ksh ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -25,7 +63,10 @@ export const MessageListItem = ({ message, onClick, isSelected }: MessageListIte
 
   return (
     <div
-      onClick={onClick}
+      onClick={handleClick}
+      onPointerDown={handlePointerDown}
+      onPointerUp={clearPressTimer}
+      onPointerLeave={clearPressTimer}
       className={cn(
         "p-4 border-b cursor-pointer transition-colors hover:bg-message-hover",
         !message.is_read && "bg-message-unread font-medium",
@@ -34,6 +75,12 @@ export const MessageListItem = ({ message, onClick, isSelected }: MessageListIte
     >
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2">
+          {selectionMode && (
+            <Checkbox
+              checked={selected}
+              onCheckedChange={(v) => onSelectToggle?.(Boolean(v))}
+            />
+          )}
           <span className="font-semibold text-foreground">
             {message.sender_name || "Unknown"}
           </span>

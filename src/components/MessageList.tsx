@@ -4,6 +4,7 @@ import { MessageListItem } from "./MessageListItem";
 import { MessageDetail } from "./MessageDetail";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -22,18 +23,51 @@ import { useIsMobile } from "@/hooks/use-mobile";
 interface MessageListProps {
   messages: Message[];
   onMarkAsRead: (messageId: string) => void;
+  onDelete: (ids: string[]) => Promise<void> | void;
 }
 
 type SearchFilter = "all" | "name" | "amount" | "code";
 
-export const MessageList = ({ messages, onMarkAsRead }: MessageListProps) => {
+export const MessageList = ({ messages, onMarkAsRead, onDelete }: MessageListProps) => {
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFilter, setSearchFilter] = useState<SearchFilter>("all");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const isMobile = useIsMobile();
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const toggleSelection = (id: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
+  const enterSelectionMode = (message: Message) => {
+    setSelectionMode(true);
+    setSelectedIds(new Set([message.id]));
+  };
+
+  const exitSelectionMode = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const handleDeleteSelected = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    await onDelete(ids);
+    exitSelectionMode();
+  };
 
   const handleMessageClick = (message: Message) => {
+    if (selectionMode) {
+      toggleSelection(message.id, !selectedIds.has(message.id));
+      return;
+    }
     setSelectedMessage(message);
     if (!message.is_read) {
       onMarkAsRead(message.id);
@@ -93,6 +127,16 @@ export const MessageList = ({ messages, onMarkAsRead }: MessageListProps) => {
             </Select>
           </div>
 
+          {selectionMode && (
+            <div className="p-3 border-b flex items-center justify-between bg-card/50">
+              <div className="text-sm">{selectedIds.size} selected</div>
+              <div className="flex gap-2">
+                <Button variant="destructive" size="sm" onClick={handleDeleteSelected}>Delete</Button>
+                <Button variant="outline" size="sm" onClick={exitSelectionMode}>Cancel</Button>
+              </div>
+            </div>
+          )}
+
           {/* Messages */}
           <div className="flex-1 overflow-y-auto">
             {filteredMessages.length === 0 ? (
@@ -106,6 +150,10 @@ export const MessageList = ({ messages, onMarkAsRead }: MessageListProps) => {
                   message={message}
                   onClick={() => handleMessageClick(message)}
                   isSelected={selectedMessage?.id === message.id}
+                  selectionMode={selectionMode}
+                  selected={selectedIds.has(message.id)}
+                  onSelectToggle={(checked) => toggleSelection(message.id, checked)}
+                  onLongPress={() => enterSelectionMode(message)}
                 />
               ))
             )}

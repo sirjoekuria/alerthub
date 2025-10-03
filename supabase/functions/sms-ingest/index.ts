@@ -102,6 +102,36 @@ serve(async (req) => {
       );
     }
 
+    // Normalize received timestamp with fallback to now()
+    const receivedAt = (() => {
+      try {
+        if (payload.timestamp) {
+          const isoTry = new Date(payload.timestamp);
+          if (!isNaN(isoTry.getTime())) return isoTry.toISOString();
+          const m = payload.timestamp.match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?,\s*(\d{1,2}):(\d{2})\s*([AP]M|am|pm)?/i);
+          if (m) {
+            const day = parseInt(m[1], 10);
+            const month = parseInt(m[2], 10);
+            const yearPart = m[3];
+            const now = new Date();
+            const year = yearPart ? (yearPart.length === 2 ? 2000 + parseInt(yearPart, 10) : parseInt(yearPart, 10)) : now.getFullYear();
+            let hour = parseInt(m[4], 10);
+            const minute = parseInt(m[5], 10);
+            const ampm = m[6]?.toLowerCase();
+            if (ampm) {
+              if (ampm === 'pm' && hour < 12) hour += 12;
+              if (ampm === 'am' && hour === 12) hour = 0;
+            }
+            const dateUtc = new Date(Date.UTC(year, month - 1, day, hour, minute));
+            return dateUtc.toISOString();
+          }
+        }
+      } catch (e) {
+        console.log('Failed to parse received timestamp:', e);
+      }
+      return new Date().toISOString();
+    })();
+
     // Insert message into database
     const { data, error } = await supabaseClient
       .from('messages')
@@ -114,7 +144,7 @@ serve(async (req) => {
         mpesa_code: parsed.mpesaCode,
         sms_sender: payload.sender,
         is_read: false,
-        received_timestamp: payload.timestamp,
+        received_timestamp: receivedAt,
       })
       .select()
       .single();

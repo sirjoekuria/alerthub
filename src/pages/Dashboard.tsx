@@ -10,7 +10,7 @@ import { useState } from "react";
 
 const Dashboard = () => {
   const { user, signOut, loading: authLoading } = useAuth();
-  const { messages, loading: messagesLoading, unreadCount, markAsRead } = useMessages(user?.id);
+  const { messages, loading: messagesLoading, unreadCount, markAsRead, deleteMessages } = useMessages(user?.id);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   if (authLoading) {
@@ -117,7 +117,7 @@ const Dashboard = () => {
               </div>
             </div>
           ) : (
-            <MessageList messages={messages} onMarkAsRead={markAsRead} />
+            <MessageList messages={messages} onMarkAsRead={markAsRead} onDelete={deleteMessages} />
           )}
         </main>
       </div>

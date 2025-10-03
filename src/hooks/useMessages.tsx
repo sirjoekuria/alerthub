@@ -104,11 +104,31 @@ export const useMessages = (userId: string | undefined) => {
     }
   };
 
+  const deleteMessages = async (ids: string[]) => {
+    try {
+      if (ids.length === 0) return;
+      const { error } = await supabase
+        .from('messages')
+        .delete()
+        .in('id', ids);
+
+      if (error) throw error;
+
+      // Refresh list to ensure counts are accurate
+      await fetchMessages();
+      toast.success(`Deleted ${ids.length} message${ids.length > 1 ? 's' : ''}`);
+    } catch (error: any) {
+      console.error('Error deleting messages:', error);
+      toast.error('Failed to delete messages');
+    }
+  };
+
   return {
     messages,
     loading,
     unreadCount,
     markAsRead,
     refetch: fetchMessages,
+    deleteMessages,
   };
 };
