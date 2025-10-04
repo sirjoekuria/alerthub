@@ -62,13 +62,8 @@ export const MessageDetail = ({ message }: MessageDetailProps) => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Transaction Date</label>
+              <label className="text-sm font-medium text-muted-foreground">Transaction Date & Time</label>
               <p className="text-sm">{formatDate(message.transaction_date)}</p>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Received At</label>
-              <p className="text-sm">{formatDate(message.received_timestamp)}</p>
             </div>
 
             <div className="space-y-2">
