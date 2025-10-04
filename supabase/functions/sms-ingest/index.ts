@@ -50,12 +50,13 @@ function parseMPESAMessage(message: string) {
         if (ampm === 'PM' && hour < 12) hour += 12;
         if (ampm === 'AM' && hour === 12) hour = 0;
         
-        // Create date in UTC
+        // M-Pesa timestamps are in East Africa Time (UTC+3)
+        // Subtract 3 hours to convert to UTC
         const date = new Date(Date.UTC(
           parseInt(fullYear, 10),
           parseInt(month, 10) - 1,
           parseInt(day, 10),
-          hour,
+          hour - 3, // Convert EAT (UTC+3) to UTC
           minute,
           0
         ));
