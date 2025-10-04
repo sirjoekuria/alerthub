@@ -16,14 +16,14 @@ interface SMSPayload {
 // Parse MPESA message to extract transaction details
 function parseMPESAMessage(message: string) {
   const patterns = {
-    // Transaction code: e.g., "FQ123HAZ18" - alphanumeric code at start
-    code: /^([A-Z0-9]+)\s/,
+    // Transaction code: e.g., "TJ4796EWEC" - alphanumeric code in the message
+    code: /([A-Z0-9]{10})\s+Confirmed/i,
     // Amount: e.g., "Ksh500.00", "Ksh1,500.00"
     amount: /Ksh([\d,]+\.?\d*)/,
-    // Recipient/Sender: "sent to [Name]" or "received from [Name]" or "paid to [Name]"
-    recipient: /(?:sent to|received from|paid to|from)\s+([A-Za-z\s]+?)(?:\s+on|\s+for|\.|\s+[0-9])/i,
-    // Date and time: "28/2/24 at 4:20 PM" or "on 28/02/2024"
-    date: /on\s+(\d{1,2}\/\d{1,2}\/\d{2,4})\s+at\s+(\d{1,2}:\d{2}\s*(?:AM|PM)?)/i,
+    // Recipient/Sender: "from [Name]" pattern in M-Pesa messages
+    recipient: /from\s+([A-Za-z\s]+?)\s+\d{10}/i,
+    // Date and time: "on 4/10/25 at 9:49 AM"
+    date: /on\s+(\d{1,2}\/\d{1,2}\/\d{2,4})\s+at\s+(\d{1,2}:\d{2}\s*(?:AM|PM))/i,
   };
 
   const codeMatch = message.match(patterns.code);
@@ -35,11 +35,33 @@ function parseMPESAMessage(message: string) {
   if (dateMatch) {
     try {
       const dateStr = dateMatch[1];
-      const timeStr = dateMatch[2];
-      // Parse date in format DD/MM/YY or DD/MM/YYYY
+      const timeStr = dateMatch[2].toUpperCase();
+      // Parse date in format DD/MM/YY
       const [day, month, year] = dateStr.split('/');
       const fullYear = year.length === 2 ? `20${year}` : year;
-      transactionDate = new Date(`${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${timeStr}`).toISOString();
+      
+      // Parse time with AM/PM
+      const timeMatch = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/);
+      if (timeMatch) {
+        let hour = parseInt(timeMatch[1], 10);
+        const minute = parseInt(timeMatch[2], 10);
+        const ampm = timeMatch[3];
+        
+        if (ampm === 'PM' && hour < 12) hour += 12;
+        if (ampm === 'AM' && hour === 12) hour = 0;
+        
+        // Create date in UTC
+        const date = new Date(Date.UTC(
+          parseInt(fullYear, 10),
+          parseInt(month, 10) - 1,
+          parseInt(day, 10),
+          hour,
+          minute,
+          0
+        ));
+        
+        transactionDate = date.toISOString();
+      }
     } catch (error) {
       console.log('Failed to parse transaction date:', error);
       transactionDate = null;
