@@ -126,6 +126,7 @@ serve(async (req) => {
     }
 
     // Normalize received timestamp with fallback to now()
+    // Format: "04/10, 10:28 am" - East Africa Time (UTC+3)
     const receivedAt = (() => {
       try {
         if (payload.timestamp) {
@@ -145,7 +146,8 @@ serve(async (req) => {
               if (ampm === 'pm' && hour < 12) hour += 12;
               if (ampm === 'am' && hour === 12) hour = 0;
             }
-            const dateUtc = new Date(Date.UTC(year, month - 1, day, hour, minute));
+            // Convert EAT (UTC+3) to UTC by subtracting 3 hours
+            const dateUtc = new Date(Date.UTC(year, month - 1, day, hour - 3, minute));
             return dateUtc.toISOString();
           }
         }
