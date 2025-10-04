@@ -68,40 +68,58 @@ export const MessageListItem = ({
       onPointerUp={clearPressTimer}
       onPointerLeave={clearPressTimer}
       className={cn(
-        "p-4 border-b cursor-pointer transition-colors hover:bg-message-hover",
-        !message.is_read && "bg-message-unread font-medium",
-        isSelected && "bg-accent"
+        "group relative p-5 border-b border-border/50 cursor-pointer transition-all duration-200",
+        "hover:bg-accent/30 hover:border-primary/20 hover:shadow-sm",
+        !message.is_read && "bg-gradient-to-r from-accent/40 to-accent/20 border-l-4 border-l-primary",
+        isSelected && "bg-accent/50 border-primary/30"
       )}
     >
-      <div className="flex items-start justify-between mb-2">
-        <div className="flex items-center gap-2">
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
           {selectionMode && (
             <Checkbox
               checked={selected}
               onCheckedChange={(v) => onSelectToggle?.(Boolean(v))}
+              className="mt-0.5"
             />
           )}
-          <span className="font-semibold text-foreground">
-            {message.sender_name || "Unknown"}
-          </span>
-          {!message.is_read && (
-            <Badge variant="default" className="text-xs px-1.5 py-0">
-              UNREAD
-            </Badge>
-          )}
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <span className="font-semibold text-foreground text-base truncate">
+              {message.sender_name || "Unknown"}
+            </span>
+            {!message.is_read && (
+              <Badge 
+                variant="default" 
+                className="text-xs px-2 py-0.5 bg-primary/90 hover:bg-primary font-medium shadow-sm"
+              >
+                NEW
+              </Badge>
+            )}
+          </div>
         </div>
-        <span className="text-xs text-muted-foreground">
+        <span className="text-xs text-muted-foreground whitespace-nowrap">
           {formatDate(message.received_timestamp)}
         </span>
       </div>
       
-      <div className="space-y-1">
-        <div className="text-sm text-foreground">
-          {formatCurrency(message.amount)}
+      <div className="space-y-2.5 pl-0">
+        <div className="flex items-baseline gap-2">
+          <span className="text-2xl font-bold text-primary">
+            {formatCurrency(message.amount)}
+          </span>
         </div>
-        <div className="text-xs text-muted-foreground">
-          Code: {message.mpesa_code || "N/A"}
+        
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-muted-foreground font-medium">Code:</span>
+          <span className="font-mono text-foreground bg-muted/50 px-2 py-0.5 rounded text-xs">
+            {message.mpesa_code || "N/A"}
+          </span>
         </div>
+      </div>
+      
+      {/* Subtle hover indicator */}
+      <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="w-1.5 h-8 bg-primary/20 rounded-full" />
       </div>
     </div>
   );
