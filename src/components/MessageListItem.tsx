@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { Message } from "@/hooks/useMessages";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -55,7 +55,7 @@ export const MessageListItem = ({
 
   const formatDate = (dateString: string) => {
     try {
-      return format(new Date(dateString), "MMM d, h:mm a");
+      return formatInTimeZone(new Date(dateString), "Africa/Nairobi", "MMM d, h:mm a");
     } catch {
       return "Invalid date";
     }
