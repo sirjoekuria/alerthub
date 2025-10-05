@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      message_stats: {
+        Row: {
+          created_at: string | null
+          date: string
+          id: string
+          total_amount: number | null
+          total_messages: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          date?: string
+          id?: string
+          total_amount?: number | null
+          total_messages?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          id?: string
+          total_amount?: number | null
+          total_messages?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           amount: number | null
@@ -66,6 +96,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           created_at: string | null
           email: string
           full_name: string | null
@@ -73,6 +104,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string | null
           email: string
           full_name?: string | null
@@ -80,6 +112,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string | null
           email?: string
           full_name?: string | null

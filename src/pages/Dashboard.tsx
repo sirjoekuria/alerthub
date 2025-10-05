@@ -1,17 +1,22 @@
 import { useAuth } from "@/hooks/useAuth";
 import { useMessages } from "@/hooks/useMessages";
+import { useStats } from "@/hooks/useStats";
 import { LiveIndicator } from "@/components/LiveIndicator";
 import { MessageList } from "@/components/MessageList";
 import { Button } from "@/components/ui/button";
-import { LogOut, Inbox, Menu } from "lucide-react";
+import { LogOut, Inbox, Menu, User, FileText, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
   const { user, signOut, loading: authLoading } = useAuth();
   const { messages, loading: messagesLoading, unreadCount, markAsRead, deleteMessages } = useMessages(user?.id);
+  const { stats } = useStats(user?.id);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const navigate = useNavigate();
 
   if (authLoading) {
     return (
@@ -31,6 +36,27 @@ const Dashboard = () => {
 
   const SidebarContent = () => (
     <div className="space-y-4">
+      {/* Today's Stats Card */}
+      <Card className="bg-gradient-to-br from-primary/10 to-accent/10">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <TrendingUp className="w-4 h-4" />
+            Today's Activity
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <div className="flex justify-between items-center">
+            <span className="text-xs text-muted-foreground">Messages</span>
+            <span className="text-lg font-bold">{stats.total_messages}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-xs text-muted-foreground">Total Amount</span>
+            <span className="text-lg font-bold">KES {stats.total_amount.toLocaleString()}</span>
+          </div>
+          <p className="text-xs text-muted-foreground pt-2 border-t">Resets daily at 1:00 AM</p>
+        </CardContent>
+      </Card>
+
       <div className="space-y-2">
         <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-sidebar-accent">
           <span className="font-semibold text-sidebar-accent-foreground">MPESA Inbox</span>
@@ -43,6 +69,26 @@ const Dashboard = () => {
         <div className="px-3 py-2 text-sm text-sidebar-foreground">
           <p>Total Messages: {messages.length}</p>
         </div>
+      </div>
+
+      {/* Navigation Links */}
+      <div className="space-y-2">
+        <Button
+          variant="ghost"
+          className="w-full justify-start"
+          onClick={() => navigate("/profile")}
+        >
+          <User className="w-4 h-4 mr-2" />
+          My Profile
+        </Button>
+        <Button
+          variant="ghost"
+          className="w-full justify-start"
+          onClick={() => navigate("/financial-report")}
+        >
+          <FileText className="w-4 h-4 mr-2" />
+          Financial Report
+        </Button>
       </div>
 
       <div className="space-y-2 pt-4 border-t">
