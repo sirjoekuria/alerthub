@@ -130,15 +130,28 @@ serve(async (req) => {
     const receivedAt = (() => {
       try {
         if (payload.timestamp) {
-          const isoTry = new Date(payload.timestamp);
-          if (!isNaN(isoTry.getTime())) return isoTry.toISOString();
-          const m = payload.timestamp.match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?,\s*(\d{1,2}):(\d{2})\s*([AP]M|am|pm)?/i);
+          const ts = String(payload.timestamp).trim();
+          // Only treat as ISO/epoch if it clearly contains a year or timezone info
+          const isLikelyIso =
+            /^\d{4}-\d{2}-\d{2}T/.test(ts) ||
+            ts.endsWith('Z') ||
+            /[+-]\d{2}:\d{2}$/.test(ts) ||
+            /^\d{10,13}$/.test(ts);
+          if (isLikelyIso) {
+            const d = /^\d{10,13}$/.test(ts)
+              ? new Date(ts.length === 10 ? Number(ts) * 1000 : Number(ts))
+              : new Date(ts);
+            if (!isNaN(d.getTime())) return d.toISOString();
+          }
+          const m = ts.match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?,\s*(\d{1,2}):(\d{2})\s*([AP]M|am|pm)?/i);
           if (m) {
             const day = parseInt(m[1], 10);
             const month = parseInt(m[2], 10);
             const yearPart = m[3];
             const now = new Date();
-            const year = yearPart ? (yearPart.length === 2 ? 2000 + parseInt(yearPart, 10) : parseInt(yearPart, 10)) : now.getFullYear();
+            const year = yearPart
+              ? (yearPart.length === 2 ? 2000 + parseInt(yearPart, 10) : parseInt(yearPart, 10))
+              : now.getFullYear();
             let hour = parseInt(m[4], 10);
             const minute = parseInt(m[5], 10);
             const ampm = m[6]?.toLowerCase();
@@ -146,7 +159,7 @@ serve(async (req) => {
               if (ampm === 'pm' && hour < 12) hour += 12;
               if (ampm === 'am' && hour === 12) hour = 0;
             }
-            // Convert EAT (UTC+3) to UTC by subtracting 3 hours
+            // Build as EAT (UTC+3) and convert to UTC by subtracting 3 hours
             const dateUtc = new Date(Date.UTC(year, month - 1, day, hour - 3, minute));
             return dateUtc.toISOString();
           }
