@@ -197,6 +197,35 @@ serve(async (req) => {
 
     console.log('Message stored successfully:', data);
 
+    // Generate receipt if this is a M-PESA transaction with amount
+    if (parsed.amount && parsed.amount > 0) {
+      console.log('Generating receipt for transaction...');
+      
+      const { data: receiptNumData } = await supabaseClient.rpc('generate_receipt_number');
+      
+      const { data: receiptData, error: receiptError } = await supabaseClient
+        .from('receipts')
+        .insert({
+          user_id: userId,
+          message_id: data.id,
+          receipt_number: receiptNumData || `RCP-${Date.now()}`,
+          amount: parsed.amount,
+          sender_name: parsed.senderName || 'Unknown',
+          sender_phone: payload.sender || 'Unknown',
+          mpesa_code: parsed.mpesaCode || 'N/A',
+          transaction_date: parsed.transactionDate || receivedAt,
+        })
+        .select()
+        .single();
+
+      if (receiptError) {
+        console.error('Error creating receipt:', receiptError);
+        // Don't fail the whole request if receipt creation fails
+      } else {
+        console.log('Receipt created successfully:', receiptData);
+      }
+    }
+
     return new Response(
       JSON.stringify({ success: true, message: 'SMS processed successfully', data }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

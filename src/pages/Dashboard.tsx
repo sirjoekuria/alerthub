@@ -4,7 +4,7 @@ import { useStats } from "@/hooks/useStats";
 import { LiveIndicator } from "@/components/LiveIndicator";
 import { MessageList } from "@/components/MessageList";
 import { Button } from "@/components/ui/button";
-import { LogOut, Inbox, Menu, User, FileText, TrendingUp } from "lucide-react";
+import { LogOut, Inbox, Menu, User, FileText, TrendingUp, Receipt } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -88,6 +88,14 @@ const Dashboard = () => {
         >
           <FileText className="w-4 h-4 mr-2" />
           Financial Report
+        </Button>
+        <Button
+          variant="ghost"
+          className="w-full justify-start"
+          onClick={() => navigate("/receipts")}
+        >
+          <Receipt className="w-4 h-4 mr-2" />
+          Receipts
         </Button>
       </div>
 
