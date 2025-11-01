@@ -121,12 +121,59 @@ export type Database = {
         }
         Relationships: []
       }
+      receipts: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          message_id: string
+          mpesa_code: string
+          receipt_number: string
+          sender_name: string
+          sender_phone: string
+          transaction_date: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          message_id: string
+          mpesa_code: string
+          receipt_number: string
+          sender_name: string
+          sender_phone: string
+          transaction_date: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          message_id?: string
+          mpesa_code?: string
+          receipt_number?: string
+          sender_name?: string
+          sender_phone?: string
+          transaction_date?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipts_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_receipt_number: { Args: never; Returns: string }
     }
     Enums: {
       [_ in never]: never
