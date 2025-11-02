@@ -82,7 +82,9 @@ export const MessageDetail = ({ message }: MessageDetailProps) => {
             </CollapsibleTrigger>
             <CollapsibleContent className="mt-4">
               <div className="p-4 bg-muted rounded-lg">
-                <p className="text-sm font-mono whitespace-pre-wrap">{message.original_text}</p>
+                <p className="text-sm font-mono whitespace-pre-wrap">
+                  {message.original_text.replace(/New M-PESA balance is Ksh[\d,]+\.\d{2}/gi, '').trim()}
+                </p>
               </div>
             </CollapsibleContent>
           </Collapsible>

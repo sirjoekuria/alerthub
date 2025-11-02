@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ManualPaymentDialog } from "@/components/ManualPaymentDialog";
 
 const Dashboard = () => {
   const { user, signOut, loading: authLoading } = useAuth();
@@ -53,9 +54,12 @@ const Dashboard = () => {
             <span className="text-xs text-muted-foreground">Total Amount</span>
             <span className="text-lg font-bold">KES {stats.total_amount.toLocaleString()}</span>
           </div>
-          <p className="text-xs text-muted-foreground pt-2 border-t">Resets daily at 1:00 AM</p>
+          <p className="text-xs text-muted-foreground pt-2 border-t">Resets monthly on 1st</p>
         </CardContent>
       </Card>
+
+      {/* Manual Payment Button */}
+      <ManualPaymentDialog userId={user.id} />
 
       <div className="space-y-2">
         <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-sidebar-accent">
