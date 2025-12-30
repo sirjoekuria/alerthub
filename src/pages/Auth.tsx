@@ -55,8 +55,8 @@ const Auth = () => {
       setEmail("");
       setPassword("");
       setFullName("");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to create account");
+    } catch (error) {
+      toast.error((error as Error).message || "Failed to create account");
     } finally {
       setLoading(false);
     }
@@ -75,8 +75,8 @@ const Auth = () => {
       if (error) throw error;
 
       toast.success("Logged in successfully!");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to log in");
+    } catch (error) {
+      toast.error((error as Error).message || "Failed to log in");
     } finally {
       setLoading(false);
     }
@@ -95,8 +95,8 @@ const Auth = () => {
 
       toast.success("Password reset email sent! Check your inbox.");
       setEmail("");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to send reset email");
+    } catch (error) {
+      toast.error((error as Error).message || "Failed to send reset email");
     } finally {
       setLoading(false);
     }

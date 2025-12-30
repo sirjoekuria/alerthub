@@ -46,7 +46,7 @@ const Profile = () => {
         setFullName(data.full_name || "");
         setAvatarUrl(data.avatar_url || "");
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error loading profile:", error);
     }
   };
@@ -64,7 +64,7 @@ const Profile = () => {
       const reader = new FileReader();
       reader.onloadend = async () => {
         const base64String = reader.result as string;
-        
+
         const { error } = await supabase
           .from("profiles")
           .update({ avatar_url: base64String })
@@ -76,8 +76,8 @@ const Profile = () => {
         toast.success("Avatar updated successfully!");
       };
       reader.readAsDataURL(file);
-    } catch (error: any) {
-      toast.error(error.message || "Failed to upload avatar");
+    } catch (error) {
+      toast.error((error as Error).message || "Failed to upload avatar");
     } finally {
       setLoading(false);
     }
@@ -96,8 +96,8 @@ const Profile = () => {
       if (error) throw error;
 
       toast.success("Profile updated successfully!");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to update profile");
+    } catch (error) {
+      toast.error((error as Error).message || "Failed to update profile");
     } finally {
       setLoading(false);
     }
@@ -113,8 +113,8 @@ const Profile = () => {
       if (error) throw error;
 
       toast.success("Email update initiated! Please check your new email for confirmation.");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to update email");
+    } catch (error) {
+      toast.error((error as Error).message || "Failed to update email");
     } finally {
       setLoading(false);
     }
@@ -143,8 +143,8 @@ const Profile = () => {
       toast.success("Password updated successfully!");
       setNewPassword("");
       setConfirmPassword("");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to update password");
+    } catch (error) {
+      toast.error((error as Error).message || "Failed to update password");
     } finally {
       setLoading(false);
     }

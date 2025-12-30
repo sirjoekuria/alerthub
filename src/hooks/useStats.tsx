@@ -52,11 +52,11 @@ export const useStats = (userId: string | undefined) => {
         },
         (payload) => {
           if (payload.new && typeof payload.new === 'object') {
-            const newData = payload.new as any;
+            const newData = payload.new as Record<string, unknown>;
             const today = new Date().toISOString().split('T')[0];
             if (newData.date === today) {
               setStats({
-                total_messages: newData.total_messages || 0,
+                total_messages: Number(newData.total_messages) || 0,
                 total_amount: Number(newData.total_amount) || 0,
               });
             }

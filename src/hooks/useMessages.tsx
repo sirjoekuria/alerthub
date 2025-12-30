@@ -35,7 +35,7 @@ export const useMessages = (userId: string | undefined) => {
 
       setMessages(data || []);
       setUnreadCount(data?.filter(m => !m.is_read).length || 0);
-    } catch (error: any) {
+    } catch (error) {
       toast.error('Failed to fetch messages');
       console.error('Error fetching messages:', error);
     } finally {
@@ -63,13 +63,13 @@ export const useMessages = (userId: string | undefined) => {
         },
         (payload) => {
           console.log('Real-time update:', payload);
-          
+
           if (payload.eventType === 'INSERT') {
             setMessages(prev => [payload.new as Message, ...prev]);
             setUnreadCount(prev => prev + 1);
             toast.success('New MPESA message received!');
           } else if (payload.eventType === 'UPDATE') {
-            setMessages(prev => 
+            setMessages(prev =>
               prev.map(msg => msg.id === payload.new.id ? payload.new as Message : msg)
             );
             fetchMessages(); // Refresh unread count
@@ -99,7 +99,7 @@ export const useMessages = (userId: string | undefined) => {
         prev.map(msg => msg.id === messageId ? { ...msg, is_read: true } : msg)
       );
       setUnreadCount(prev => Math.max(0, prev - 1));
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error marking message as read:', error);
     }
   };
@@ -117,7 +117,7 @@ export const useMessages = (userId: string | undefined) => {
       // Refresh list to ensure counts are accurate
       await fetchMessages();
       toast.success(`Deleted ${ids.length} message${ids.length > 1 ? 's' : ''}`);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error deleting messages:', error);
       toast.error('Failed to delete messages');
     }

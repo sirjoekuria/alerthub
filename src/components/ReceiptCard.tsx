@@ -2,7 +2,7 @@ import { Receipt } from '@/hooks/useReceipts';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
-import { Share2, Mail, MessageCircle } from 'lucide-react';
+import { Share2, Mail, MessageCircle, Download, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   DropdownMenu,
@@ -10,6 +10,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useRef, useState } from 'react';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+import { PrintableReceipt } from './PrintableReceipt';
 
 interface ReceiptCardProps {
   receipt: Receipt;
@@ -17,6 +21,8 @@ interface ReceiptCardProps {
 
 export const ReceiptCard = ({ receipt }: ReceiptCardProps) => {
   const { toast } = useToast();
+  const receiptRef = useRef<HTMLDivElement>(null);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   const shareViaEmail = () => {
     const subject = `Payment Receipt - ${receipt.receipt_number}`;
@@ -25,7 +31,7 @@ Transaction Code: ${receipt.mpesa_code}
 Amount: KSh ${Number(receipt.amount).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
 From: ${receipt.sender_name}
 Date: ${format(new Date(receipt.transaction_date), 'dd MMM yyyy, HH:mm')}`;
-    
+
     window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
   };
 
@@ -36,7 +42,7 @@ Transaction: ${receipt.mpesa_code}
 Amount: KSh ${Number(receipt.amount).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
 From: ${receipt.sender_name}
 Date: ${format(new Date(receipt.transaction_date), 'dd MMM yyyy, HH:mm')}`;
-    
+
     window.open(`https://wa.me/?text=${encodeURIComponent(message)}`);
   };
 
@@ -45,8 +51,55 @@ Date: ${format(new Date(receipt.transaction_date), 'dd MMM yyyy, HH:mm')}`;
     window.open(`sms:?body=${encodeURIComponent(message)}`);
   };
 
+  const handleDownloadPDF = async () => {
+    if (!receiptRef.current) return;
+
+    try {
+      setIsGeneratingPdf(true);
+
+      const canvas = await html2canvas(receiptRef.current, {
+        scale: 2, // Higher scale for better quality
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`receipt_${receipt.receipt_number}.pdf`);
+
+      toast({
+        title: "Receipt Downloaded",
+        description: "Your receipt has been successfully saved as a PDF.",
+      });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast({
+        title: "Download Failed",
+        description: "There was an error generating your PDF. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
   return (
     <div className="space-y-3">
+      {/* Hidden container for PDF generation */}
+      <div className="absolute top-0 left-0 overflow-hidden h-0 w-0">
+        <PrintableReceipt ref={receiptRef} receipt={receipt} />
+      </div>
+
       <Card className="p-6 space-y-4 bg-card border">
         {/* Header */}
         <div className="text-center border-b pb-4">
@@ -60,7 +113,7 @@ Date: ${format(new Date(receipt.transaction_date), 'dd MMM yyyy, HH:mm')}`;
             <span className="text-sm text-muted-foreground">Receipt Number:</span>
             <span className="font-semibold text-foreground">{receipt.receipt_number}</span>
           </div>
-          
+
           <div className="flex justify-between items-center">
             <span className="text-sm text-muted-foreground">Transaction Code:</span>
             <span className="font-mono text-foreground">{receipt.mpesa_code}</span>
@@ -105,29 +158,50 @@ Date: ${format(new Date(receipt.transaction_date), 'dd MMM yyyy, HH:mm')}`;
         </div>
       </Card>
 
-      {/* Share Button */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="default" className="w-full">
-            <Share2 className="w-4 h-4 mr-2" />
-            Share Receipt
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="center" className="w-48">
-          <DropdownMenuItem onClick={shareViaEmail}>
-            <Mail className="w-4 h-4 mr-2" />
-            Email
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={shareViaWhatsApp}>
-            <MessageCircle className="w-4 h-4 mr-2" />
-            WhatsApp
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={shareViaSMS}>
-            <MessageCircle className="w-4 h-4 mr-2" />
-            SMS
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {/* Action Buttons */}
+      <div className="flex gap-2">
+        <Button
+          variant="outline"
+          className="flex-1"
+          onClick={handleDownloadPDF}
+          disabled={isGeneratingPdf}
+        >
+          {isGeneratingPdf ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Download className="w-4 h-4 mr-2" />
+              Download PDF
+            </>
+          )}
+        </Button>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="default" className="flex-1">
+              <Share2 className="w-4 h-4 mr-2" />
+              Share
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="center" className="w-48">
+            <DropdownMenuItem onClick={shareViaEmail}>
+              <Mail className="w-4 h-4 mr-2" />
+              Email
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={shareViaWhatsApp}>
+              <MessageCircle className="w-4 h-4 mr-2" />
+              WhatsApp
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={shareViaSMS}>
+              <MessageCircle className="w-4 h-4 mr-2" />
+              SMS
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </div>
   );
 };
