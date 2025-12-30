@@ -2,14 +2,8 @@ import { Receipt } from '@/hooks/useReceipts';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
-import { Share2, Mail, MessageCircle, Download, Loader2 } from 'lucide-react';
+import { Share2, Download, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -23,63 +17,51 @@ export const ReceiptCard = ({ receipt }: ReceiptCardProps) => {
   const { toast } = useToast();
   const receiptRef = useRef<HTMLDivElement>(null);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
 
-  const shareViaEmail = () => {
-    const subject = `Payment Receipt - ${receipt.receipt_number}`;
-    const body = `Receipt Number: ${receipt.receipt_number}
-Transaction Code: ${receipt.mpesa_code}
-Amount: KSh ${Number(receipt.amount).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
-From: ${receipt.sender_name}
-Date: ${format(new Date(receipt.transaction_date), 'dd MMM yyyy, HH:mm')}`;
+  const generatePdfBlob = async (): Promise<Blob | null> => {
+    if (!receiptRef.current) return null;
 
-    window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
-  };
+    const canvas = await html2canvas(receiptRef.current, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      backgroundColor: '#ffffff'
+    });
 
-  const shareViaWhatsApp = () => {
-    const message = `*PAYMENT RECEIPT*
-Receipt No: ${receipt.receipt_number}
-Transaction: ${receipt.mpesa_code}
-Amount: KSh ${Number(receipt.amount).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
-From: ${receipt.sender_name}
-Date: ${format(new Date(receipt.transaction_date), 'dd MMM yyyy, HH:mm')}`;
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
 
-    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`);
-  };
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
 
-  const shareViaSMS = () => {
-    const message = `Receipt: ${receipt.receipt_number} | ${receipt.mpesa_code} | KSh ${Number(receipt.amount).toLocaleString('en-KE')} from ${receipt.sender_name}`;
-    window.open(`sms:?body=${encodeURIComponent(message)}`);
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    return pdf.output('blob');
   };
 
   const handleDownloadPDF = async () => {
-    if (!receiptRef.current) return;
-
     try {
       setIsGeneratingPdf(true);
+      const blob = await generatePdfBlob();
 
-      const canvas = await html2canvas(receiptRef.current, {
-        scale: 2, // Higher scale for better quality
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff'
-      });
+      if (!blob) throw new Error("Failed to generate PDF");
 
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      });
-
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`receipt_${receipt.receipt_number}.pdf`);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `receipt_${receipt.receipt_number}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
 
       toast({
         title: "Receipt Downloaded",
-        description: "Your receipt has been successfully saved as a PDF.",
+        description: "Your receipt has been successfully saved.",
       });
     } catch (error) {
       console.error('Error generating PDF:', error);
@@ -90,6 +72,48 @@ Date: ${format(new Date(receipt.transaction_date), 'dd MMM yyyy, HH:mm')}`;
       });
     } finally {
       setIsGeneratingPdf(false);
+    }
+  };
+
+  const handleSharePDF = async () => {
+    try {
+      setIsSharing(true);
+      const blob = await generatePdfBlob();
+
+      if (!blob) throw new Error("Failed to generate PDF");
+
+      const file = new File([blob], `receipt_${receipt.receipt_number}.pdf`, {
+        type: 'application/pdf',
+      });
+
+      if (navigator.share && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: 'Payment Receipt',
+          text: `Payment Receipt for ${receipt.mpesa_code}`,
+        });
+        toast({
+          title: "Shared Successfully",
+          description: "Receipt shared successfully.",
+        });
+      } else {
+        // Fallback for browsers that don't support sharing files
+        throw new Error("Sharing not supported on this device");
+      }
+    } catch (error) {
+      // Ignore abort errors (user cancelled share)
+      if ((error as Error).name !== 'AbortError') {
+        console.error('Error sharing PDF:', error);
+        toast({
+          title: "Share Failed",
+          description: "Could not share the receipt. Trying to download instead...",
+          variant: "destructive",
+        });
+        // Fallback to download
+        handleDownloadPDF();
+      }
+    } finally {
+      setIsSharing(false);
     }
   };
 
@@ -164,7 +188,7 @@ Date: ${format(new Date(receipt.transaction_date), 'dd MMM yyyy, HH:mm')}`;
           variant="outline"
           className="flex-1"
           onClick={handleDownloadPDF}
-          disabled={isGeneratingPdf}
+          disabled={isGeneratingPdf || isSharing}
         >
           {isGeneratingPdf ? (
             <>
@@ -179,28 +203,24 @@ Date: ${format(new Date(receipt.transaction_date), 'dd MMM yyyy, HH:mm')}`;
           )}
         </Button>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="default" className="flex-1">
+        <Button
+          variant="default"
+          className="flex-1"
+          onClick={handleSharePDF}
+          disabled={isGeneratingPdf || isSharing}
+        >
+          {isSharing ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Sharing...
+            </>
+          ) : (
+            <>
               <Share2 className="w-4 h-4 mr-2" />
-              Share
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="center" className="w-48">
-            <DropdownMenuItem onClick={shareViaEmail}>
-              <Mail className="w-4 h-4 mr-2" />
-              Email
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={shareViaWhatsApp}>
-              <MessageCircle className="w-4 h-4 mr-2" />
-              WhatsApp
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={shareViaSMS}>
-              <MessageCircle className="w-4 h-4 mr-2" />
-              SMS
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              Share Receipt
+            </>
+          )}
+        </Button>
       </div>
     </div>
   );
