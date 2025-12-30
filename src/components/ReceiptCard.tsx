@@ -25,11 +25,14 @@ export const ReceiptCard = ({ receipt }: ReceiptCardProps) => {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
 
-  const generatePdfBlob = async (): Promise<Blob | null> => {
+  const generatePdfBlob = async (scale = 2): Promise<Blob | null> => {
     if (!receiptRef.current) return null;
 
+    // Slight delay to ensure UI updates (e.g. dropdown closes) before heavy lift
+    await new Promise(resolve => setTimeout(resolve, 100));
+
     const canvas = await html2canvas(receiptRef.current, {
-      scale: 2,
+      scale: scale,
       useCORS: true,
       logging: false,
       backgroundColor: '#ffffff'
@@ -52,7 +55,9 @@ export const ReceiptCard = ({ receipt }: ReceiptCardProps) => {
   const handleDownloadPDF = async (silent = false) => {
     try {
       if (!silent) setIsGeneratingPdf(true);
-      const blob = await generatePdfBlob();
+
+      // Use higher quality (scale 2) for direct downloads, slightly lower (1.5) for sharing speed
+      const blob = await generatePdfBlob(silent ? 1.5 : 2);
 
       if (!blob) throw new Error("Failed to generate PDF");
 
@@ -90,7 +95,9 @@ export const ReceiptCard = ({ receipt }: ReceiptCardProps) => {
   const shareViaNative = async () => {
     try {
       setIsSharing(true);
-      const blob = await generatePdfBlob();
+      toast({ description: "Preparing receipt for sharing..." });
+
+      const blob = await generatePdfBlob(1.5); // Faster generation
 
       if (!blob) throw new Error("Failed to generate PDF");
 
@@ -125,7 +132,9 @@ export const ReceiptCard = ({ receipt }: ReceiptCardProps) => {
 
   const handleShareWithDownload = async (type: 'email' | 'whatsapp' | 'sms') => {
     setIsSharing(true);
-    // 1. Auto-download the Receipt first
+    toast({ description: "Preparing receipt..." });
+
+    // 1. Auto-download the Receipt first using faster scale
     const success = await handleDownloadPDF(true); // silent download
 
     if (success) {
@@ -136,7 +145,7 @@ export const ReceiptCard = ({ receipt }: ReceiptCardProps) => {
         window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
 
         toast({
-          title: "PDF Saved",
+          title: "Ready to Send",
           description: "Receipt downloaded. Please attach it to your email.",
         });
       } else if (type === 'whatsapp') {
@@ -144,7 +153,7 @@ export const ReceiptCard = ({ receipt }: ReceiptCardProps) => {
         window.open(`https://wa.me/?text=${encodeURIComponent(message)}`);
 
         toast({
-          title: "PDF Saved",
+          title: "Ready to Send",
           description: "Receipt downloaded. Please attach it to your WhatsApp message.",
         });
       } else if (type === 'sms') {
@@ -152,7 +161,7 @@ export const ReceiptCard = ({ receipt }: ReceiptCardProps) => {
         window.open(`sms:?body=${encodeURIComponent(message)}`);
 
         toast({
-          title: "PDF Saved",
+          title: "Ready to Send",
           description: "Receipt downloaded. Please attach it if your messaging app supports files.",
         });
       }
