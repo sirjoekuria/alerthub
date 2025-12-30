@@ -31,24 +31,27 @@ export const ReceiptCard = ({ receipt }: ReceiptCardProps) => {
     // Slight delay to ensure UI updates (e.g. dropdown closes) before heavy lift
     await new Promise(resolve => setTimeout(resolve, 100));
 
-    const canvas = await html2canvas(receiptRef.current, {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const options: any = {
       scale: scale,
       useCORS: true,
       logging: false,
       backgroundColor: '#ffffff'
-    });
+    };
+    const canvas = await html2canvas(receiptRef.current, options);
 
-    const imgData = canvas.toDataURL('image/png');
+    const imgData = canvas.toDataURL('image/jpeg', 0.8); // JPEG with 0.8 quality
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
-      format: 'a4'
+      format: 'a4',
+      compress: true
     });
 
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = pdf.internal.pageSize.getHeight();
 
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
     return pdf.output('blob');
   };
 
