@@ -4,7 +4,8 @@ import { useStats } from "@/hooks/useStats";
 import { LiveIndicator } from "@/components/LiveIndicator";
 import { MessageList } from "@/components/MessageList";
 import { Button } from "@/components/ui/button";
-import { LogOut, Inbox, Menu, User, FileText, TrendingUp, Receipt } from "lucide-react";
+import { LogOut, Inbox, Menu, User, FileText, TrendingUp, Receipt, Moon, Sun, Laptop } from "lucide-react";
+import { useTheme } from "@/components/theme-provider";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -14,6 +15,7 @@ import { ManualPaymentDialog } from "@/components/ManualPaymentDialog";
 
 const Dashboard = () => {
   const { user, signOut, loading: authLoading } = useAuth();
+  const { setTheme } = useTheme();
   const { messages, loading: messagesLoading, unreadCount, markAsRead, deleteMessages } = useMessages(user?.id);
   const { stats } = useStats(user?.id);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -103,6 +105,22 @@ const Dashboard = () => {
         </Button>
       </div>
 
+      {/* Theme Toggle */}
+      <div className="space-y-2 pt-4 border-t">
+        <p className="px-3 text-xs font-semibold text-muted-foreground mb-2">Theme</p>
+        <div className="grid grid-cols-3 gap-2 px-3">
+          <Button variant="outline" size="sm" onClick={() => setTheme("light")} className="w-full">
+            <Sun className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setTheme("dark")} className="w-full">
+            <Moon className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setTheme("system")} className="w-full">
+            <Laptop className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
       <div className="space-y-2 pt-4 border-t">
         <div className="px-3">
           <p className="text-xs font-semibold text-sidebar-foreground mb-2">Your User ID</p>
@@ -125,8 +143,8 @@ const Dashboard = () => {
           <div className="flex items-center gap-2 md:gap-4">
             <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden">
-                  <Menu className="h-5 w-5" />
+                <Button variant="ghost" className="md:hidden font-semibold">
+                  Menu
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-72 p-4 bg-sidebar">
