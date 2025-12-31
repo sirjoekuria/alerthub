@@ -3,7 +3,7 @@ import { Message } from "@/hooks/useMessages";
 import { MessageListItem } from "./MessageListItem";
 import { MessageDetail } from "./MessageDetail";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -24,11 +24,12 @@ interface MessageListProps {
   messages: Message[];
   onMarkAsRead: (messageId: string) => void;
   onDelete: (ids: string[]) => Promise<void> | void;
+  dailyTotal?: number;
 }
 
 type SearchFilter = "all" | "name" | "amount" | "code";
 
-export const MessageList = ({ messages, onMarkAsRead, onDelete }: MessageListProps) => {
+export const MessageList = ({ messages, onMarkAsRead, onDelete, dailyTotal = 0 }: MessageListProps) => {
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFilter, setSearchFilter] = useState<SearchFilter>("all");
@@ -100,31 +101,33 @@ export const MessageList = ({ messages, onMarkAsRead, onDelete }: MessageListPro
 
   return (
     <>
-      <div className="flex h-full">
+      <div className="flex h-full bg-gray-50/50">
         {/* Message List */}
-        <div className="w-full md:w-96 border-r flex flex-col">
-          {/* Search Bar */}
-          <div className="p-3 md:p-4 border-b bg-card space-y-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search messages..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
+        <div className="w-full md:w-96 border-r flex flex-col bg-background">
+          {/* Search Bar & Total */}
+          <div className="p-4 space-y-4 border-b">
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
+                <Input
+                  placeholder="Search transactions..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 h-10 rounded-xl bg-gray-100 border-none focus-visible:ring-1 focus-visible:ring-primary text-gray-900 placeholder:text-gray-500"
+                />
+              </div>
+              <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground rounded-xl hover:bg-gray-100">
+                <Filter className="w-5 h-5 text-gray-600" />
+              </Button>
             </div>
-            <Select value={searchFilter} onValueChange={(value: SearchFilter) => setSearchFilter(value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Fields</SelectItem>
-                <SelectItem value="name">Sender Name</SelectItem>
-                <SelectItem value="amount">Amount</SelectItem>
-                <SelectItem value="code">Transaction Code</SelectItem>
-              </SelectContent>
-            </Select>
+
+            {/* Daily Total Card */}
+            <div className="bg-white border rounded-xl p-4 shadow-sm">
+              <p className="text-sm font-medium text-gray-500 mb-1">Today's Total</p>
+              <div className="text-2xl font-bold text-gray-900">
+                Ksh {dailyTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </div>
+            </div>
           </div>
 
           {selectionMode && (

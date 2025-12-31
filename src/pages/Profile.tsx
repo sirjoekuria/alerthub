@@ -5,10 +5,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { ArrowLeft, Upload, User, Mail, Lock } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Upload } from "lucide-react";
 
 const Profile = () => {
   const { user, loading: authLoading } = useAuth();
@@ -60,7 +60,6 @@ const Profile = () => {
       const fileExt = file.name.split(".").pop();
       const filePath = `${user?.id}-${Math.random()}.${fileExt}`;
 
-      // For now, we'll use a placeholder. In production, you'd upload to Supabase Storage
       const reader = new FileReader();
       reader.onloadend = async () => {
         const base64String = reader.result as string;
@@ -169,139 +168,128 @@ const Profile = () => {
     .slice(0, 2);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/10 p-4 md:p-8">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <Button variant="ghost" onClick={() => navigate("/dashboard")} className="mb-4">
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Dashboard
-        </Button>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Header */}
+      <header className="bg-white border-b sticky top-0 z-10">
+        <div className="px-4 h-16 flex items-center justify-between max-w-lg mx-auto w-full">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")} className="-ml-2">
+              <ArrowLeft className="w-6 h-6" />
+            </Button>
+            <h1 className="text-xl font-bold">My Profile</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            {/* Right side placeholder - maybe app logo or user avatar small */}
+          </div>
+        </div>
+      </header>
+
+      {/* Content */}
+      <div className="flex-1 p-4 max-w-lg mx-auto w-full space-y-6 pb-12 text-gray-900">
 
         {/* Avatar Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="w-5 h-5" />
-              Profile Picture
-            </CardTitle>
-            <CardDescription>Update your avatar</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center gap-4">
-            <Avatar className="w-32 h-32">
-              <AvatarImage src={avatarUrl} alt={fullName} />
-              <AvatarFallback className="text-3xl">{initials || "U"}</AvatarFallback>
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col items-center gap-4">
+          <div className="relative">
+            <Avatar className="w-28 h-28 border-4 border-gray-50 shadow-sm">
+              <AvatarImage src={avatarUrl} alt={fullName} className="object-cover" />
+              <AvatarFallback className="text-3xl bg-gray-100 text-gray-500">{initials || "U"}</AvatarFallback>
             </Avatar>
-            <Label htmlFor="avatar-upload" className="cursor-pointer">
-              <div className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors">
-                <Upload className="w-4 h-4" />
+          </div>
+          <div className="w-full">
+            <Label htmlFor="avatar-upload" className="block w-full">
+              <div className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 rounded-xl text-center cursor-pointer transition-colors shadow-sm hover:shadow active:scale-[0.99]">
                 Upload New Avatar
               </div>
-              <Input
-                id="avatar-upload"
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleAvatarUpload}
-                disabled={loading}
-              />
             </Label>
-          </CardContent>
-        </Card>
+            <Input
+              id="avatar-upload"
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarUpload}
+              disabled={loading}
+            />
+          </div>
+        </div>
 
-        {/* Profile Info */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="w-5 h-5" />
-              Personal Information
-            </CardTitle>
-            <CardDescription>Update your profile details</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleUpdateProfile} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name</Label>
-                <Input
-                  id="fullName"
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Enter your full name"
-                />
-              </div>
-              <Button type="submit" disabled={loading}>
-                {loading ? "Updating..." : "Update Profile"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+        {/* Personal Information */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 text-gray-900">
+          <h3 className="font-bold text-lg mb-4">Personal Information</h3>
+          <form onSubmit={handleUpdateProfile} className="space-y-4">
+            <div className="space-y-2">
+              <Input
+                className="h-12 rounded-xl bg-gray-50 border-gray-200 focus:bg-white transition-all text-gray-900 placeholder:text-gray-500"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Enter your full name"
+              />
+            </div>
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full h-12 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold shadow-sm hover:shadow transition-all"
+            >
+              {loading ? "Updating..." : "Update Profile"}
+            </Button>
+          </form>
+        </div>
 
-        {/* Email Update */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Mail className="w-5 h-5" />
-              Email Address
-            </CardTitle>
-            <CardDescription>Update your email address</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleUpdateEmail} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                />
-              </div>
-              <Button type="submit" disabled={loading}>
-                {loading ? "Updating..." : "Update Email"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+        {/* Email Address */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 text-gray-900">
+          <h3 className="font-bold text-lg mb-4">Email Address</h3>
+          <form onSubmit={handleUpdateEmail} className="space-y-4">
+            <div className="space-y-2">
+              <Input
+                className="h-12 rounded-xl bg-gray-50 border-gray-200 focus:bg-white transition-all text-gray-900 placeholder:text-gray-500"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+              />
+            </div>
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full h-12 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold shadow-sm hover:shadow transition-all"
+            >
+              {loading ? "Updating..." : "Update Email"}
+            </Button>
+          </form>
+        </div>
 
-        {/* Password Update */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Lock className="w-5 h-5" />
-              Change Password
-            </CardTitle>
-            <CardDescription>Update your password</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleUpdatePassword} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="newPassword">New Password</Label>
-                <Input
-                  id="newPassword"
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="••••••••"
-                  minLength={6}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="••••••••"
-                  minLength={6}
-                />
-              </div>
-              <Button type="submit" disabled={loading}>
-                {loading ? "Updating..." : "Update Password"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+        {/* Change Password */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 text-gray-900">
+          <h3 className="font-bold text-lg mb-4">Change Password</h3>
+          <form onSubmit={handleUpdatePassword} className="space-y-4">
+            <div className="space-y-2">
+              <Input
+                type="password"
+                className="h-12 rounded-xl bg-gray-50 border-gray-200 focus:bg-white transition-all text-gray-900 placeholder:text-gray-500"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="New Password"
+                minLength={6}
+              />
+            </div>
+            <div className="space-y-2">
+              <Input
+                type="password"
+                className="h-12 rounded-xl bg-gray-50 border-gray-200 focus:bg-white transition-all text-gray-900 placeholder:text-gray-500"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm Password"
+                minLength={6}
+              />
+            </div>
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full h-12 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold shadow-sm hover:shadow transition-all"
+            >
+              {loading ? "Updating..." : "Update Password"}
+            </Button>
+          </form>
+        </div>
+
       </div>
     </div>
   );

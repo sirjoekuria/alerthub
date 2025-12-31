@@ -4,6 +4,8 @@ import { cn } from "@/lib/utils";
 import { formatInTimeZone } from "date-fns-tz";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Card } from "@/components/ui/card";
+import { ShoppingBag } from "lucide-react"; // Generic logo placeholder
 
 interface MessageListItemProps {
   message: Message;
@@ -61,66 +63,79 @@ export const MessageListItem = ({
     }
   };
 
+  // Logic to determine logo based on sender name (Mock implementation)
+  const getLogo = (name: string) => {
+    // In a real app, you'd map names to specific image assets
+    // For now, we return a generic icon with a colored background
+    // random color based on name length
+    const colors = ["bg-orange-100 text-orange-600", "bg-blue-100 text-blue-600", "bg-green-100 text-green-600", "bg-purple-100 text-purple-600"];
+    const colorIndex = name.length % colors.length;
+
+    return (
+      <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", colors[colorIndex])}>
+        <ShoppingBag className="w-5 h-5" />
+      </div>
+    );
+  };
+
   return (
-    <div
+    <Card
       onClick={handleClick}
       onPointerDown={handlePointerDown}
       onPointerUp={clearPressTimer}
       onPointerLeave={clearPressTimer}
       className={cn(
-        "group relative p-5 border-b border-border/50 cursor-pointer transition-all duration-200",
-        "hover:bg-accent/30 hover:border-primary/20 hover:shadow-sm",
-        !message.is_read && "bg-gradient-to-r from-accent/40 to-accent/20 border-l-4 border-l-primary",
-        isSelected && "bg-accent/50 border-primary/30"
+        "group relative mb-3 mx-2 overflow-hidden border transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md bg-white",
+        !message.is_read ? "border-l-4 border-l-primary" : "border-border",
+        isSelected && "ring-2 ring-primary ring-offset-2"
       )}
     >
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          {selectionMode && (
-            <Checkbox
-              checked={selected}
-              onCheckedChange={(v) => onSelectToggle?.(Boolean(v))}
-              className="mt-0.5"
-            />
-          )}
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <span className="font-semibold text-foreground text-base truncate">
+      <div className="p-4 flex justify-between items-start gap-3">
+        {/* Left Section */}
+        <div className="flex-1 space-y-3">
+          {/* Header: Name + Badge */}
+          <div className="flex items-center gap-2">
+            {selectionMode && (
+              <Checkbox
+                checked={selected}
+                onCheckedChange={(v) => onSelectToggle?.(Boolean(v))}
+                className="mr-2"
+              />
+            )}
+            <h3 className="font-bold text-base text-gray-900 truncate max-w-[180px] sm:max-w-xs uppercase">
               {message.sender_name || "Unknown"}
-            </span>
+            </h3>
             {!message.is_read && (
-              <Badge 
-                variant="default" 
-                className="text-xs px-2 py-0.5 bg-primary/90 hover:bg-primary font-medium shadow-sm"
-              >
+              <Badge variant="default" className="text-[10px] h-5 px-1.5 bg-green-500 hover:bg-green-600">
                 NEW
               </Badge>
             )}
           </div>
+
+          {/* Amount */}
+          <div>
+            <span className="text-xl font-bold text-green-600 block">
+              {formatCurrency(message.amount)}
+            </span>
+          </div>
+
+          {/* Code */}
+          <div className="flex items-center gap-2">
+            <span className="text-gray-500 text-xs">Code:</span>
+            <Badge variant="secondary" className="font-mono text-xs px-2 py-0.5 bg-gray-100 text-gray-700 hover:bg-gray-200">
+              {message.mpesa_code || "N/A"}
+            </Badge>
+          </div>
         </div>
-        <span className="text-xs text-muted-foreground whitespace-nowrap">
-          {formatDate(message.received_timestamp)}
-        </span>
-      </div>
-      
-      <div className="space-y-2.5 pl-0">
-        <div className="flex items-baseline gap-2">
-          <span className="text-2xl font-bold text-primary">
-            {formatCurrency(message.amount)}
+
+        {/* Right Section */}
+        <div className="flex flex-col items-end justify-between h-auto gap-4">
+          <span className="text-xs text-gray-500 whitespace-nowrap">
+            {formatDate(message.received_timestamp)}
           </span>
-        </div>
-        
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-muted-foreground font-medium">Code:</span>
-          <span className="font-mono text-foreground bg-muted/50 px-2 py-0.5 rounded text-xs">
-            {message.mpesa_code || "N/A"}
-          </span>
+          {getLogo(message.sender_name || "")}
         </div>
       </div>
-      
-      {/* Subtle hover indicator */}
-      <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-        <div className="w-1.5 h-8 bg-primary/20 rounded-full" />
-      </div>
-    </div>
+    </Card>
   );
 };

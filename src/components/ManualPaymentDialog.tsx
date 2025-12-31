@@ -32,7 +32,7 @@ export const ManualPaymentDialog = ({ userId }: ManualPaymentDialogProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.amount || !formData.senderName) {
       toast({
         title: "Missing Information",
@@ -79,8 +79,10 @@ export const ManualPaymentDialog = ({ userId }: ManualPaymentDialogProps) => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="default" className="w-full">
-          <Plus className="w-4 h-4 mr-2" />
+        <Button
+          className="w-full h-12 text-base font-semibold bg-green-600 hover:bg-green-700 text-white rounded-xl shadow-md transition-all hover:shadow-lg active:scale-[0.98]"
+        >
+          <Plus className="w-5 h-5 mr-2" />
           Add Cash Payment
         </Button>
       </DialogTrigger>

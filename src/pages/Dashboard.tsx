@@ -38,98 +38,123 @@ const Dashboard = () => {
   }
 
   const SidebarContent = () => (
-    <div className="space-y-4">
-      {/* Today's Stats Card */}
-      <Card className="bg-gradient-to-br from-primary/10 to-accent/10">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <TrendingUp className="w-4 h-4" />
+    <div className="space-y-6">
+      {/* Today's Activity Card */}
+      <Card className="border-none shadow-sm bg-white overflow-hidden">
+        <div className="p-4 bg-white border-b border-gray-100">
+          <h3 className="font-bold text-base flex items-center gap-2 text-gray-900">
             Today's Activity
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
+          </h3>
+        </div>
+        <CardContent className="p-4 space-y-4">
           <div className="flex justify-between items-center">
-            <span className="text-xs text-muted-foreground">Messages</span>
-            <span className="text-lg font-bold">{stats.total_messages}</span>
+            <div>
+              <p className="text-xs text-gray-500 font-medium mb-1">Messages</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.total_messages}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-gray-500 font-medium mb-1">Total Amount</p>
+              <p className="text-2xl font-bold text-green-600">KES {stats.total_amount.toLocaleString()}</p>
+            </div>
           </div>
-          <div className="flex justify-between items-center">
-            <span className="text-xs text-muted-foreground">Total Amount</span>
-            <span className="text-lg font-bold">KES {stats.total_amount.toLocaleString()}</span>
-          </div>
-          <p className="text-xs text-muted-foreground pt-2 border-t">Resets monthly on 1st</p>
+          <p className="text-xs text-gray-400 pt-2 border-t border-gray-100 text-center">
+            Resets monthly on 1st
+          </p>
         </CardContent>
       </Card>
 
       {/* Manual Payment Button */}
       <ManualPaymentDialog userId={user.id} />
 
+      {/* Menu List */}
       <div className="space-y-2">
-        <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-sidebar-accent">
-          <span className="font-semibold text-sidebar-accent-foreground">MPESA Inbox</span>
+        <h4 className="px-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Menu</h4>
+
+        <div
+          className="flex items-center justify-between p-3 rounded-xl bg-green-50 text-green-700 cursor-pointer hover:bg-green-100 transition-colors"
+          onClick={() => { }} // Inbox is default view
+        >
+          <div className="flex items-center gap-3">
+            <Inbox className="w-5 h-5" />
+            <span className="font-medium">MPESA Inbox</span>
+          </div>
           {unreadCount > 0 && (
-            <Badge variant="default" className="ml-2">
+            <Badge className="bg-green-600 hover:bg-green-700 text-white border-none rounded-full px-2">
               {unreadCount}
             </Badge>
           )}
         </div>
-        <div className="px-3 py-2 text-sm text-sidebar-foreground">
-          <p>Total Messages: {messages.length}</p>
-        </div>
-      </div>
 
-      {/* Navigation Links */}
-      <div className="space-y-2">
         <Button
           variant="ghost"
-          className="w-full justify-start"
+          className="w-full justify-between items-center p-3 h-auto text-base hover:bg-gray-100 rounded-xl font-normal text-muted-foreground hover:text-gray-900 group"
           onClick={() => navigate("/profile")}
         >
-          <User className="w-4 h-4 mr-2" />
-          My Profile
+          <div className="flex items-center gap-3">
+            <User className="w-5 h-5" />
+            <span>My Profile</span>
+          </div>
+          <LogOut className="w-4 h-4 opacity-0 group-hover:opacity-50 rotate-180" /> {/* Chevron placeholder using specific icon if needed, or stick to simple */}
         </Button>
+
         <Button
           variant="ghost"
-          className="w-full justify-start"
+          className="w-full justify-between items-center p-3 h-auto text-base hover:bg-gray-100 rounded-xl font-normal text-muted-foreground hover:text-gray-900 group"
           onClick={() => navigate("/financial-report")}
         >
-          <FileText className="w-4 h-4 mr-2" />
-          Financial Report
+          <div className="flex items-center gap-3">
+            <TrendingUp className="w-5 h-5" />
+            <span>Financial Report</span>
+          </div>
         </Button>
+
         <Button
           variant="ghost"
-          className="w-full justify-start"
+          className="w-full justify-between items-center p-3 h-auto text-base hover:bg-gray-100 rounded-xl font-normal text-muted-foreground hover:text-gray-900 group"
           onClick={() => navigate("/receipts")}
         >
-          <Receipt className="w-4 h-4 mr-2" />
-          Receipts
+          <div className="flex items-center gap-3">
+            <Receipt className="w-5 h-5" />
+            <span>Receipts</span>
+          </div>
         </Button>
       </div>
 
       {/* Theme Toggle */}
-      <div className="space-y-2 pt-4 border-t">
-        <p className="px-3 text-xs font-semibold text-muted-foreground mb-2">Theme</p>
-        <div className="grid grid-cols-3 gap-2 px-3">
-          <Button variant="outline" size="sm" onClick={() => setTheme("light")} className="w-full">
-            <Sun className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setTheme("dark")} className="w-full">
-            <Moon className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setTheme("system")} className="w-full">
-            <Laptop className="h-4 w-4" />
-          </Button>
+      <div className="space-y-3 pt-6 border-t">
+        <p className="px-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Theme</p>
+        <div className="grid grid-cols-3 gap-2 bg-gray-100 p-1 rounded-xl">
+          <button
+            onClick={() => setTheme("light")}
+            className="flex items-center justify-center py-1.5 rounded-lg bg-white text-gray-900 shadow-sm text-sm font-medium transition-all"
+          >
+            Light
+          </button>
+          <button
+            onClick={() => setTheme("dark")}
+            className="flex items-center justify-center py-1.5 rounded-lg text-gray-500 hover:text-gray-900 text-sm font-medium transition-all"
+          >
+            Dark
+          </button>
+          <button
+            onClick={() => setTheme("system")}
+            className="flex items-center justify-center py-1.5 rounded-lg text-gray-500 hover:text-gray-900 text-sm font-medium transition-all"
+          >
+            System
+          </button>
         </div>
       </div>
 
-      <div className="space-y-2 pt-4 border-t">
-        <div className="px-3">
-          <p className="text-xs font-semibold text-sidebar-foreground mb-2">Your User ID</p>
-          <div className="bg-sidebar-accent/50 rounded p-2 break-all">
-            <code className="text-xs text-sidebar-accent-foreground">{user?.id}</code>
-          </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            Use this ID in your SMS forwarder app or include it in the JSON payload as "userId".
-          </p>
+      {/* User ID */}
+      <div className="pt-2">
+        <p className="px-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Your User ID</p>
+        <div className="bg-green-50 border border-green-100 rounded-xl p-3 flex items-center justify-between group cursor-pointer relative overflow-hidden"
+          onClick={() => {
+            navigator.clipboard.writeText(user.id);
+            // toast functionality would go here
+          }}>
+          <code className="text-xs font-mono text-green-700 truncate max-w-[200px]">{user.id}</code>
+          <FileText className="w-4 h-4 text-green-600 opacity-50 group-hover:opacity-100 transition-opacity" />
         </div>
       </div>
     </div>
@@ -138,38 +163,52 @@ const Dashboard = () => {
   return (
     <div className="h-screen flex flex-col">
       {/* Header */}
-      <header className="border-b bg-card">
-        <div className="px-3 md:px-6 py-3 md:py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2 md:gap-4">
+      <header className="border-b bg-card shadow-sm z-10">
+        <div className="px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
             <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" className="md:hidden font-semibold">
-                  Menu
+                <Button variant="ghost" size="icon" className="md:hidden">
+                  <Menu className="w-6 h-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-72 p-4 bg-sidebar">
-                <SidebarContent />
+              <SheetContent side="left" className="w-80 p-0 bg-background border-r">
+                <div className="p-6 h-full flex flex-col">
+                  <div className="flex items-center gap-3 mb-8">
+                    <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
+                      <Inbox className="w-6 h-6 text-primary" />
+                    </div>
+                    <div>
+                      <h2 className="font-bold text-xl leading-none">M-PESA</h2>
+                      <span className="text-sm font-medium text-muted-foreground">Monitor</span>
+                    </div>
+                  </div>
+                  <SidebarContent />
+                </div>
               </SheetContent>
             </Sheet>
 
-            <div className="flex items-center gap-2 md:gap-3">
-              <div className="w-8 h-8 md:w-10 md:h-10 bg-primary rounded-xl flex items-center justify-center">
-                <Inbox className="w-4 h-4 md:w-5 md:h-5 text-primary-foreground" />
+            <div className="flex items-center gap-3 md:hidden">
+              <span className="font-bold text-lg">M-PESA Monitor</span>
+            </div>
+
+            <div className="hidden md:flex items-center gap-3">
+              <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
+                <Inbox className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <h1 className="text-base md:text-xl font-bold">MPESA Monitor</h1>
-                <p className="text-xs md:text-sm text-muted-foreground hidden sm:block">Transaction Hub</p>
+                <h1 className="text-xl font-bold leading-none">M-PESA</h1>
+                <p className="text-sm text-muted-foreground font-medium">Monitor</p>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 md:gap-4">
-            <LiveIndicator />
-            <Button variant="outline" onClick={signOut} size="sm" className="hidden sm:flex">
-              <LogOut className="w-4 h-4 mr-2" />
-              Sign Out
-            </Button>
-            <Button variant="outline" onClick={signOut} size="icon" className="sm:hidden">
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex bg-green-100 text-green-700 px-3 py-1.5 rounded-full items-center gap-2 text-sm font-medium">
+              <div className="w-2 h-2 rounded-full bg-green-600 animate-pulse" />
+              Live Monitoring
+            </div>
+            <Button variant="outline" size="icon" onClick={signOut}>
               <LogOut className="w-4 h-4" />
             </Button>
           </div>
@@ -177,9 +216,9 @@ const Dashboard = () => {
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden bg-gray-50/50">
         {/* Desktop Sidebar */}
-        <aside className="hidden md:block w-64 border-r bg-sidebar p-4 space-y-4 overflow-y-auto">
+        <aside className="hidden md:block w-80 border-r bg-background p-6 space-y-6 overflow-y-auto">
           <SidebarContent />
         </aside>
 
@@ -193,7 +232,12 @@ const Dashboard = () => {
               </div>
             </div>
           ) : (
-            <MessageList messages={messages} onMarkAsRead={markAsRead} onDelete={deleteMessages} />
+            <MessageList
+              messages={messages}
+              onMarkAsRead={markAsRead}
+              onDelete={deleteMessages}
+              dailyTotal={stats.total_amount}
+            />
           )}
         </main>
       </div>
