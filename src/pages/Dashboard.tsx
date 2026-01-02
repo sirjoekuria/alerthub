@@ -172,9 +172,9 @@ const Dashboard = () => {
                   <Menu className="w-6 h-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-80 p-0 bg-background border-r">
-                <div className="p-6 h-full flex flex-col">
-                  <div className="flex items-center gap-3 mb-8">
+              <SheetContent side="left" className="w-80 p-0 bg-background border-r overflow-hidden">
+                <div className="p-6 h-full flex flex-col overflow-y-auto">
+                  <div className="flex items-center gap-3 mb-8 flex-shrink-0">
                     <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
                       <Inbox className="w-6 h-6 text-primary" />
                     </div>
@@ -183,7 +183,9 @@ const Dashboard = () => {
                       <span className="text-sm font-medium text-muted-foreground">Monitor</span>
                     </div>
                   </div>
-                  <SidebarContent />
+                  <div className="flex-1 overflow-y-auto">
+                    <SidebarContent />
+                  </div>
                 </div>
               </SheetContent>
             </Sheet>
