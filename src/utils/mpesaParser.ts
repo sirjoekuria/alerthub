@@ -9,19 +9,27 @@ export interface MpesaMessage {
 
 export const parseMpesaMessage = (text: string, sender: string = "MPESA"): MpesaMessage | null => {
     // Basic patterns - can be expanded
-    const receivedPattern = /([A-Z0-9]+)\s+Confirmed\.\s+You\s+have\s+received\s+Ksh([0-9,.]+)\s+from\s+([A-Z\s]+)\s+on\s+(\d{1,2}\/\d{1,2}\/\d{2})\s+at\s+(\d{1,2}:\d{2}\s*[AP]M)/i;
+    // Updated pattern to handle variations:
+    // 1. Optional space after "Confirmed."
+    // 2. Sender name including phone numbers (non-greedy capture until " on ")
+    // 3. Flexible date format
+    const receivedPattern = /([A-Z0-9]+)\s+Confirmed\.[\s\S]*?You\s+have\s+received\s+Ksh([0-9,.]+)\s+from\s+(.*?)\s+on\s+(\d{1,2}\/\d{1,2}\/\d{2,4})\s+at\s+(\d{1,2}:\d{2}\s*[AP]M)/i;
 
     const match = text.match(receivedPattern);
 
     if (match) {
-        const [_, code, amountStr, senderName, dateStr, timeStr] = match;
+        const [_, code, amountStr, rawSenderName, dateStr, timeStr] = match;
         const amount = parseFloat(amountStr.replace(/,/g, ""));
+
+        // Clean sender name (remove phone numbers if they appear at the end)
+        // e.g., "FAITH KAMAU 0719483590" -> "FAITH KAMAU"
+        const senderName = rawSenderName.replace(/\s*\d+$/, "").trim();
 
         // Parse date - simplistic approach, might need robust library if format varies
         // Assuming DD/MM/YY
         const [day, month, year] = dateStr.split('/').map(Number);
-        // Assuming current century 20xx
-        const fullYear = 2000 + year;
+        // Handle 2-digit vs 4-digit year
+        const fullYear = year < 100 ? 2000 + year : year;
 
         // Construct ISO string roughly
         // Time parsing (e.g., 5:30 PM)
@@ -40,7 +48,7 @@ export const parseMpesaMessage = (text: string, sender: string = "MPESA"): Mpesa
         return {
             mpesa_code: code,
             amount,
-            sender_name: senderName.trim(),
+            sender_name: senderName,
             transaction_date: date.toISOString(),
             original_text: text,
             sms_sender: sender

@@ -1,10 +1,9 @@
 import { useAuth } from "@/hooks/useAuth";
 import { useMessages } from "@/hooks/useMessages";
 import { useStats } from "@/hooks/useStats";
-import { LiveIndicator } from "@/components/LiveIndicator";
 import { MessageList } from "@/components/MessageList";
 import { Button } from "@/components/ui/button";
-import { LogOut, Inbox, Menu, User, FileText, TrendingUp, Receipt, Moon, Sun, Laptop } from "lucide-react";
+import { LogOut, Inbox, Menu, User, FileText, TrendingUp, Receipt } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +15,7 @@ import { ManualPaymentDialog } from "@/components/ManualPaymentDialog";
 const Dashboard = () => {
   const { user, signOut, loading: authLoading } = useAuth();
   const { setTheme } = useTheme();
-  const { messages, loading: messagesLoading, unreadCount, markAsRead, deleteMessages } = useMessages(user?.id);
+  const { messages, loading: messagesLoading, unreadCount, markAsRead, markAllAsRead, deleteMessages, deleteAllMessages } = useMessages(user?.id);
   const { stats } = useStats(user?.id);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
@@ -240,7 +239,9 @@ const Dashboard = () => {
             <MessageList
               messages={messages}
               onMarkAsRead={markAsRead}
+              onMarkAllAsRead={markAllAsRead}
               onDelete={deleteMessages}
+              onDeleteAll={deleteAllMessages}
               dailyTotal={stats.total_amount}
             />
           )}
