@@ -21,6 +21,9 @@ export const useMessages = (userId: string | undefined) => {
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  // Audio for notifications
+  const notificationSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'); // Simple beep sound
+
   const fetchMessages = async () => {
     if (!userId) return;
 
@@ -68,6 +71,7 @@ export const useMessages = (userId: string | undefined) => {
             setMessages(prev => [payload.new as Message, ...prev]);
             setUnreadCount(prev => prev + 1);
             toast.success('New MPESA message received!');
+            notificationSound.play().catch(e => console.error("Error playing sound:", e));
           } else if (payload.eventType === 'UPDATE') {
             setMessages(prev =>
               prev.map(msg => msg.id === payload.new.id ? payload.new as Message : msg)
@@ -104,6 +108,25 @@ export const useMessages = (userId: string | undefined) => {
     }
   };
 
+  const markAllAsRead = async () => {
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .update({ is_read: true })
+        .eq('user_id', userId)
+        .eq('is_read', false);
+
+      if (error) throw error;
+
+      setMessages(prev => prev.map(msg => ({ ...msg, is_read: true })));
+      setUnreadCount(0);
+      toast.success('All messages marked as read');
+    } catch (error) {
+      console.error('Error marking all as read:', error);
+      toast.error('Failed to mark all as read');
+    }
+  };
+
   const deleteMessages = async (ids: string[]) => {
     try {
       if (ids.length === 0) return;
@@ -123,12 +146,32 @@ export const useMessages = (userId: string | undefined) => {
     }
   };
 
+  const deleteAllMessages = async () => {
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .delete()
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
+      setMessages([]);
+      setUnreadCount(0);
+      toast.success('All messages deleted');
+    } catch (error) {
+      console.error('Error deleting all messages:', error);
+      toast.error('Failed to delete all messages');
+    }
+  };
+
   return {
     messages,
     loading,
     unreadCount,
     markAsRead,
+    markAllAsRead,
     refetch: fetchMessages,
     deleteMessages,
+    deleteAllMessages,
   };
 };

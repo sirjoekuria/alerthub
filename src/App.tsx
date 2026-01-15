@@ -12,6 +12,13 @@ import FinancialReport from "./pages/FinancialReport";
 import Receipts from "./pages/Receipts";
 import NotFound from "./pages/NotFound";
 
+import { useSMSReader } from "./hooks/useSMSReader";
+
+const SMSListener = () => {
+  useSMSReader();
+  return null;
+};
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -21,6 +28,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <SMSListener />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />

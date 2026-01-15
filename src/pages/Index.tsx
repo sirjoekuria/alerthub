@@ -33,41 +33,7 @@ const Index = () => {
 
 
 
-        {/* How It Works */}
-        <div className="mt-24 max-w-3xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">How It Works</h2>
-          <div className="space-y-6">
-            <div className="flex gap-4 items-start">
-              <div className="flex-shrink-0 w-10 h-10 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-bold">
-                1
-              </div>
-              <div>
-                <h4 className="font-semibold text-lg mb-1">Sign Up</h4>
-                <p className="text-muted-foreground">Create your account to get started with monitoring</p>
-              </div>
-            </div>
 
-            <div className="flex gap-4 items-start">
-              <div className="flex-shrink-0 w-10 h-10 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-bold">
-                2
-              </div>
-              <div>
-                <h4 className="font-semibold text-lg mb-1">Configure SMS Forwarder</h4>
-                <p className="text-muted-foreground">Install an SMS forwarding app on your Android device and point it to our API endpoint</p>
-              </div>
-            </div>
-
-            <div className="flex gap-4 items-start">
-              <div className="flex-shrink-0 w-10 h-10 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-bold">
-                3
-              </div>
-              <div>
-                <h4 className="font-semibold text-lg mb-1">Start Monitoring</h4>
-                <p className="text-muted-foreground">View all your MPESA transactions in a clean, searchable interface</p>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

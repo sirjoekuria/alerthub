@@ -173,17 +173,21 @@ const Dashboard = () => {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-80 p-0 bg-background border-r">
-                <div className="p-6 h-full flex flex-col">
-                  <div className="flex items-center gap-3 mb-8">
-                    <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-                      <Inbox className="w-6 h-6 text-primary" />
-                    </div>
-                    <div>
-                      <h2 className="font-bold text-xl leading-none">M-PESA</h2>
-                      <span className="text-sm font-medium text-muted-foreground">Monitor</span>
+                <div className="flex flex-col h-full">
+                  <div className="p-6 pb-2">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
+                        <Inbox className="w-6 h-6 text-primary" />
+                      </div>
+                      <div>
+                        <h2 className="font-bold text-xl leading-none">M-PESA</h2>
+                        <span className="text-sm font-medium text-muted-foreground">Monitor</span>
+                      </div>
                     </div>
                   </div>
-                  <SidebarContent />
+                  <div className="flex-1 overflow-y-auto p-6 pt-0">
+                    <SidebarContent />
+                  </div>
                 </div>
               </SheetContent>
             </Sheet>
@@ -208,8 +212,9 @@ const Dashboard = () => {
               <div className="w-2 h-2 rounded-full bg-green-600 animate-pulse" />
               Live Monitoring
             </div>
-            <Button variant="outline" size="icon" onClick={signOut}>
+            <Button variant="outline" onClick={signOut} className="gap-2">
               <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">Logout</span>
             </Button>
           </div>
         </div>

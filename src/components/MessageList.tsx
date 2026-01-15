@@ -3,15 +3,19 @@ import { Message } from "@/hooks/useMessages";
 import { MessageListItem } from "./MessageListItem";
 import { MessageDetail } from "./MessageDetail";
 import { Input } from "@/components/ui/input";
-import { Search, Filter } from "lucide-react";
+import { Search, Filter, Trash2, CheckCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Drawer,
   DrawerContent,
@@ -23,13 +27,15 @@ import { useIsMobile } from "@/hooks/use-mobile";
 interface MessageListProps {
   messages: Message[];
   onMarkAsRead: (messageId: string) => void;
+  onMarkAllAsRead: () => Promise<void>;
   onDelete: (ids: string[]) => Promise<void> | void;
+  onDeleteAll: () => Promise<void>;
   dailyTotal?: number;
 }
 
 type SearchFilter = "all" | "name" | "amount" | "code";
 
-export const MessageList = ({ messages, onMarkAsRead, onDelete, dailyTotal = 0 }: MessageListProps) => {
+export const MessageList = ({ messages, onMarkAsRead, onMarkAllAsRead, onDelete, onDeleteAll, dailyTotal = 0 }: MessageListProps) => {
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFilter, setSearchFilter] = useState<SearchFilter>("all");
@@ -37,6 +43,8 @@ export const MessageList = ({ messages, onMarkAsRead, onDelete, dailyTotal = 0 }
   const isMobile = useIsMobile();
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const hasUnread = messages.some((m) => !m.is_read);
 
   const toggleSelection = (id: string, checked: boolean) => {
     setSelectedIds((prev) => {
@@ -128,6 +136,52 @@ export const MessageList = ({ messages, onMarkAsRead, onDelete, dailyTotal = 0 }
                 Ksh {dailyTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </div>
             </div>
+
+            {messages.length > 0 && (
+              <div className="flex gap-2">
+                {hasUnread && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onMarkAllAsRead()}
+                    className="flex-1 text-xs gap-1.5 h-8"
+                  >
+                    <CheckCheck className="w-3.5 h-3.5" />
+                    Mark Read
+                  </Button>
+                )}
+
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 text-xs gap-1.5 h-8 text-destructive hover:text-destructive border-destructive/20 hover:bg-destructive/10"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Delete All
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete all messages?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete all your transaction messages.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => onDeleteAll()}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Delete All
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            )}
           </div>
 
           {selectionMode && (

@@ -49,6 +49,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
+    "cordova-plugin-sms": "^1.0.5",
     "date-fns": "^3.6.0",
     "date-fns-tz": "^3.2.0",
     "embla-carousel-react": "^8.6.0",
@@ -71,6 +72,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@eslint/js": "^9.32.0",
     "@tailwindcss/typography": "^0.5.16",
     "@types/node": "^22.16.5",
