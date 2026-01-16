@@ -48,6 +48,20 @@ export const useMessages = (userId: string | undefined) => {
 
   useEffect(() => {
     fetchMessages();
+
+    // Listen for custom sync event and online status
+    const handleSync = () => {
+      console.log('Messages synced event received, refreshing...');
+      fetchMessages();
+    };
+
+    window.addEventListener('messages-synced', handleSync);
+    window.addEventListener('online', handleSync);
+
+    return () => {
+      window.removeEventListener('messages-synced', handleSync);
+      window.removeEventListener('online', handleSync);
+    };
   }, [userId]);
 
   // Set up real-time subscription

@@ -4,12 +4,15 @@ import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Receipt } from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface MessageDetailProps {
   message: Message;
@@ -17,6 +20,8 @@ interface MessageDetailProps {
 
 export const MessageDetail = ({ message }: MessageDetailProps) => {
   const [isOriginalOpen, setIsOriginalOpen] = useState(false);
+  const [loadingReceipt, setLoadingReceipt] = useState(false);
+  const navigate = useNavigate();
 
   const formatCurrency = (amount: number | null) => {
     if (!amount) return "N/A";
@@ -32,15 +37,66 @@ export const MessageDetail = ({ message }: MessageDetailProps) => {
     }
   };
 
+  const handleViewReceipt = async () => {
+    setLoadingReceipt(true);
+    try {
+      // Check if receipt exists
+      const { data: existingReceipt } = await supabase
+        .from('receipts')
+        .select('id')
+        .eq('message_id', message.id)
+        .single();
+
+      if (existingReceipt) {
+        navigate('/receipts');
+        return;
+      }
+
+      // Create receipt if it doesn't exist
+      const { error } = await supabase.from('receipts').insert({
+        user_id: message.user_id,
+        message_id: message.id,
+        receipt_number: `RCPT-${message.mpesa_code}`,
+        amount: message.amount || 0,
+        sender_name: message.sender_name || 'Unknown',
+        sender_phone: message.sms_sender,
+        mpesa_code: message.mpesa_code || '',
+        transaction_date: message.transaction_date || new Date().toISOString(),
+      });
+
+      if (error) throw error;
+
+      toast.success("Receipt generated successfully");
+      navigate('/receipts');
+    } catch (error) {
+      console.error("Error accessing receipt:", error);
+      toast.error("Failed to access receipt");
+    } finally {
+      setLoadingReceipt(false);
+    }
+  };
+
   return (
     <div className="h-full overflow-y-auto p-3 md:p-6 bg-background">
       <Card className="max-w-3xl mx-auto">
         <CardHeader className="p-4 md:p-6">
           <div className="flex items-center justify-between">
             <CardTitle className="text-xl md:text-2xl">Transaction Details</CardTitle>
-            <Badge variant={message.is_read ? "secondary" : "default"}>
-              {message.is_read ? "Read" : "Unread"}
-            </Badge>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleViewReceipt}
+                disabled={loadingReceipt}
+                className="gap-2"
+              >
+                <Receipt className="w-4 h-4" />
+                {loadingReceipt ? "Loading..." : "Receipt"}
+              </Button>
+              <Badge variant={message.is_read ? "secondary" : "default"}>
+                {message.is_read ? "Read" : "Unread"}
+              </Badge>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4 md:space-y-6 p-4 md:p-6">

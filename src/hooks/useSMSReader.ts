@@ -71,6 +71,7 @@ export const useSMSReader = () => {
 
         if (syncedCount > 0) {
             toast.success(`Synced ${syncedCount} offline messages`);
+            window.dispatchEvent(new Event('messages-synced'));
         }
     };
 
@@ -102,13 +103,33 @@ export const useSMSReader = () => {
                         return;
                     }
 
-                    const { error } = await supabase.from('messages').insert({
+                    const { data: messageData, error } = await supabase.from('messages').insert({
                         user_id: (await supabase.auth.getUser()).data.user?.id,
                         ...parsed,
                         is_read: false,
-                    });
+                    }).select().single();
 
                     if (error) throw error;
+
+                    // Auto-generate receipt
+                    if (messageData) {
+                        const { error: receiptError } = await supabase.from('receipts').insert({
+                            user_id: messageData.user_id,
+                            message_id: messageData.id,
+                            receipt_number: `RCPT-${messageData.mpesa_code}`,
+                            amount: messageData.amount,
+                            sender_name: messageData.sender_name || 'Unknown',
+                            sender_phone: messageData.sms_sender,
+                            mpesa_code: messageData.mpesa_code,
+                            transaction_date: messageData.transaction_date,
+                        });
+
+                        if (receiptError) {
+                            console.error('Failed to auto-generate receipt:', receiptError);
+                        } else {
+                            toast.success('Receipt generated automatically');
+                        }
+                    }
 
                     toast.success('Transaction Saved!');
                 } catch (err) {

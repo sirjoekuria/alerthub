@@ -5,6 +5,7 @@ import { MessageList } from "@/components/MessageList";
 import { Button } from "@/components/ui/button";
 import { LogOut, Inbox, Menu, User, FileText, TrendingUp, Receipt } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
+import { PullToRefresh } from "@/components/PullToRefresh";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -15,7 +16,7 @@ import { ManualPaymentDialog } from "@/components/ManualPaymentDialog";
 const Dashboard = () => {
   const { user, signOut, loading: authLoading } = useAuth();
   const { setTheme } = useTheme();
-  const { messages, loading: messagesLoading, unreadCount, markAsRead, markAllAsRead, deleteMessages, deleteAllMessages } = useMessages(user?.id);
+  const { messages, loading: messagesLoading, unreadCount, markAsRead, markAllAsRead, deleteMessages, deleteAllMessages, refetch: messagesRefetch } = useMessages(user?.id);
   const { stats } = useStats(user?.id);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
@@ -236,14 +237,18 @@ const Dashboard = () => {
               </div>
             </div>
           ) : (
-            <MessageList
-              messages={messages}
-              onMarkAsRead={markAsRead}
-              onMarkAllAsRead={markAllAsRead}
-              onDelete={deleteMessages}
-              onDeleteAll={deleteAllMessages}
-              dailyTotal={stats.total_amount}
-            />
+            <div className="h-full">
+              <PullToRefresh onRefresh={async () => { await messagesRefetch(); }}>
+                <MessageList
+                  messages={messages}
+                  onMarkAsRead={markAsRead}
+                  onMarkAllAsRead={markAllAsRead}
+                  onDelete={deleteMessages}
+                  onDeleteAll={deleteAllMessages}
+                  dailyTotal={stats.total_amount}
+                />
+              </PullToRefresh>
+            </div>
           )}
         </main>
       </div>
