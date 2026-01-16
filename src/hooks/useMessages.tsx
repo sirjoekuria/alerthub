@@ -32,7 +32,8 @@ export const useMessages = (userId: string | undefined) => {
         .from('messages')
         .select('*')
         .eq('user_id', userId)
-        .order('received_timestamp', { ascending: false });
+        .order('received_timestamp', { ascending: false })
+        .limit(100);
 
       if (error) throw error;
 

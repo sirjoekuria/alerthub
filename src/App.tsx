@@ -25,10 +25,6 @@ const queryClient = new QueryClient();
 const App = () => {
   const [showIntro, setShowIntro] = useState(true);
 
-  if (showIntro) {
-    return <IntroVideo onComplete={() => setShowIntro(false)} />;
-  }
-
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
@@ -37,6 +33,11 @@ const App = () => {
           <Sonner />
           <BrowserRouter>
             <SMSListener />
+            {showIntro && (
+              <div className="fixed inset-0 z-50 bg-background">
+                <IntroVideo onComplete={() => setShowIntro(false)} />
+              </div>
+            )}
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/auth" element={<Auth />} />
@@ -48,9 +49,9 @@ const App = () => {
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
-        </TooltipProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+        </TooltipProvider >
+      </ThemeProvider >
+    </QueryClientProvider >
   );
 };
 
