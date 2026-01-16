@@ -36,7 +36,7 @@ export const IntroVideo = ({ onComplete }: IntroVideoProps) => {
                 autoPlay
                 muted
                 playsInline
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
                 onEnded={onComplete}
                 onError={handleVideoError}
                 src="/intro.mp4"
