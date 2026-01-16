@@ -214,7 +214,7 @@ const Dashboard = () => {
             </div>
             <Button variant="outline" onClick={signOut} className="gap-2">
               <LogOut className="w-4 h-4" />
-              <span className="hidden sm:inline">Logout</span>
+              <span>Logout</span>
             </Button>
           </div>
         </div>

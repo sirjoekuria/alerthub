@@ -14,94 +14,74 @@ export const PrintableReceipt = React.forwardRef<HTMLDivElement, PrintableReceip
     return (
       <div
         ref={ref}
-        className="w-[794px] min-h-[1123px] bg-white p-12 text-slate-900 border border-gray-200 shadow-sm mx-auto"
+        className="w-[794px] min-h-[1123px] bg-slate-100 p-8 flex justify-center items-start"
         id="printable-receipt"
         style={{ fontFamily: 'Inter, sans-serif' }}
       >
-        {/* Header Section */}
-        <div className="flex justify-between items-start mb-12">
-          <div>
-            <h1 className="text-3xl font-bold text-green-600 mb-2">M-PESA PAYMENT</h1>
-            <p className="text-sm text-gray-500 font-medium">OFFICIAL RECEIPT</p>
-          </div>
-          <div className="text-right">
-            <div className="bg-green-50 px-4 py-2 rounded-lg border border-green-100 inline-block">
-               <span className="text-sm text-green-700 font-bold block">PAID</span>
+        <div className="bg-white w-[500px] shadow-lg p-8 rounded-none border-t-8 border-green-600">
+          {/* Header Section */}
+          <div className="text-center border-b border-dashed border-gray-200 pb-8 mb-8">
+            <h1 className="text-3xl font-black text-slate-900 mb-2 tracking-tight">M-PESA CONFIRMED</h1>
+            <p className="text-sm text-slate-500 font-medium uppercase tracking-widest">Transaction Receipt</p>
+            <div className="mt-6 inline-block bg-green-50 px-4 py-1.5 rounded-full border border-green-100">
+              <span className="text-sm text-green-700 font-bold flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-green-600 animate-pulse"></span>
+                SUCCESSFUL
+              </span>
             </div>
           </div>
-        </div>
 
-        {/* Company & Receipt Info */}
-        <div className="flex justify-between mb-12 border-b border-gray-100 pb-8">
-          <div>
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">BILLED TO</h3>
-            <p className="text-lg font-semibold">{receipt.sender_name}</p>
-            <p className="text-gray-600">{receipt.sender_phone}</p>
+          {/* Amount Section */}
+          <div className="text-center mb-8">
+            <span className="text-sm text-gray-400 uppercase tracking-widest font-semibold">Total Amount</span>
+            <h2 className="text-5xl font-bold text-slate-900 mt-2">
+              <span className="text-2xl font-medium text-slate-400 align-top mr-1">KES</span>
+              {Number(receipt.amount).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
+            </h2>
           </div>
-          <div className="text-right">
-            <div className="mb-2">
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block">RECEIPT NUMBER</span>
-              <span className="font-mono text-lg">{receipt.receipt_number}</span>
+
+          {/* Details Table */}
+          <div className="space-y-4 mb-8">
+            <div className="flex justify-between items-center py-3 border-b border-gray-50">
+              <span className="text-gray-500 font-medium">Receipt No.</span>
+              <span className="font-mono text-slate-900 font-bold">{receipt.receipt_number}</span>
             </div>
-            <div>
-               <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block">DATE</span>
-               <span>{format(new Date(receipt.transaction_date), 'dd MMM yyyy')}</span>
+            <div className="flex justify-between items-center py-3 border-b border-gray-50">
+              <span className="text-gray-500 font-medium">Transaction Code</span>
+              <span className="font-mono text-slate-900 font-bold bg-slate-50 px-2 py-0.5 rounded">{receipt.mpesa_code}</span>
+            </div>
+            <div className="flex justify-between items-center py-3 border-b border-gray-50">
+              <span className="text-gray-500 font-medium">Date</span>
+              <span className="text-slate-900 font-medium">{format(new Date(receipt.transaction_date), 'dd MMM yyyy')}</span>
+            </div>
+            <div className="flex justify-between items-center py-3 border-b border-gray-50">
+              <span className="text-gray-500 font-medium">Time</span>
+              <span className="text-slate-900 font-medium">{format(new Date(receipt.transaction_date), 'HH:mm a')}</span>
             </div>
           </div>
-        </div>
 
-        {/* Transaction Details Table */}
-        <div className="mb-12">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b-2 border-slate-100">
-                <th className="text-left py-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Description</th>
-                <th className="text-right py-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Reference</th>
-                <th className="text-right py-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-b border-slate-50">
-                <td className="py-6">
-                  <p className="font-medium text-slate-800">M-Pesa Transaction</p>
-                  <p className="text-sm text-gray-500 mt-1">Payment received via M-Pesa Service</p>
-                </td>
-                <td className="text-right py-6 font-mono text-slate-600">
-                  {receipt.mpesa_code}
-                </td>
-                <td className="text-right py-6 font-bold text-slate-800">
-                   KSh {Number(receipt.amount).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        {/* Totals Section */}
-        <div className="flex justify-end mb-16">
-          <div className="w-1/2 ">
-             <div className="flex justify-between py-3 border-b border-slate-100">
-                <span className="text-gray-600">Subtotal</span>
-                <span className="font-medium">KSh {Number(receipt.amount).toLocaleString('en-KE', { minimumFractionDigits: 2 })}</span>
-             </div>
-             <div className="flex justify-between py-3 border-b border-slate-100">
-                <span className="text-gray-600">Transaction Fee</span>
-                <span className="font-medium">KSh 0.00</span>
-             </div>
-             <div className="flex justify-between py-4">
-                <span className="text-xl font-bold text-slate-900">Total</span>
-                <span className="text-xl font-bold text-green-600">KSh {Number(receipt.amount).toLocaleString('en-KE', { minimumFractionDigits: 2 })}</span>
-             </div>
+          {/* Sender Details */}
+          <div className="bg-slate-50 rounded-xl p-6 mb-8 border border-slate-100">
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Sender Details</h3>
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-lg">
+                {receipt.sender_name.charAt(0)}
+              </div>
+              <div>
+                <p className="font-bold text-slate-900 text-lg">{receipt.sender_name}</p>
+                <p className="text-slate-500 font-mono">{receipt.sender_phone}</p>
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* Footer */}
-        <div className="mt-auto pt-8 border-t border-slate-100 text-center">
-          <p className="text-sm text-gray-500 mb-2">Thank you for your business!</p>
-          <div className="flex justify-center items-center gap-4 text-xs text-gray-400">
-            <span>Powered by MPESA Alert Hub</span>
-            <span>•</span>
-            <span>Generated on {format(new Date(), 'dd MMM yyyy, HH:mm')}</span>
+          {/* Footer */}
+          <div className="text-center pt-8 border-t border-dashed border-gray-200">
+            <p className="text-xs text-slate-400 mb-2 font-medium">Thank you for using our service</p>
+            <div className="flex justify-center items-center gap-2 text-[10px] text-slate-300 uppercase tracking-widest">
+              <span>M-PESA Alert Hub</span>
+              <span>•</span>
+              <span>Official Receipt</span>
+            </div>
           </div>
         </div>
       </div>

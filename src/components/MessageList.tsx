@@ -17,6 +17,16 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+} from "@/components/ui/dropdown-menu";
+import {
   Drawer,
   DrawerContent,
   DrawerHeader,
@@ -34,11 +44,15 @@ interface MessageListProps {
 }
 
 type SearchFilter = "all" | "name" | "amount" | "code";
+type SortOrder = "newest" | "oldest" | "highest" | "lowest";
+type FilterType = "all" | "unread";
 
 export const MessageList = ({ messages, onMarkAsRead, onMarkAllAsRead, onDelete, onDeleteAll, dailyTotal = 0 }: MessageListProps) => {
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFilter, setSearchFilter] = useState<SearchFilter>("all");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
+  const [filterType, setFilterType] = useState<FilterType>("all");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const isMobile = useIsMobile();
   const [selectionMode, setSelectionMode] = useState(false);
@@ -86,26 +100,43 @@ export const MessageList = ({ messages, onMarkAsRead, onMarkAllAsRead, onDelete,
     }
   };
 
-  const filteredMessages = messages.filter((message) => {
-    if (!searchQuery.trim()) return true;
+  const filteredMessages = messages
+    .filter((message) => {
+      // 1. Filter by Type (Unread)
+      if (filterType === "unread" && message.is_read) return false;
 
-    const query = searchQuery.toLowerCase();
-
-    switch (searchFilter) {
-      case "name":
-        return message.sender_name?.toLowerCase().includes(query);
-      case "amount":
-        return message.amount?.toString().includes(query);
-      case "code":
-        return message.mpesa_code?.toLowerCase().includes(query);
-      default:
-        return (
-          message.sender_name?.toLowerCase().includes(query) ||
-          message.amount?.toString().includes(query) ||
-          message.mpesa_code?.toLowerCase().includes(query)
-        );
-    }
-  });
+      // 2. Filter by Search Query
+      if (!searchQuery.trim()) return true;
+      const query = searchQuery.toLowerCase();
+      switch (searchFilter) {
+        case "name":
+          return message.sender_name?.toLowerCase().includes(query);
+        case "amount":
+          return message.amount?.toString().includes(query);
+        case "code":
+          return message.mpesa_code?.toLowerCase().includes(query);
+        default:
+          return (
+            message.sender_name?.toLowerCase().includes(query) ||
+            message.amount?.toString().includes(query) ||
+            message.mpesa_code?.toLowerCase().includes(query)
+          );
+      }
+    })
+    .sort((a, b) => {
+      // 3. Sort
+      switch (sortOrder) {
+        case "oldest":
+          return new Date(a.received_timestamp).getTime() - new Date(b.received_timestamp).getTime();
+        case "highest":
+          return (b.amount || 0) - (a.amount || 0);
+        case "lowest":
+          return (a.amount || 0) - (b.amount || 0);
+        case "newest":
+        default:
+          return new Date(b.received_timestamp).getTime() - new Date(a.received_timestamp).getTime();
+      }
+    });
 
   return (
     <>
@@ -124,9 +155,30 @@ export const MessageList = ({ messages, onMarkAsRead, onMarkAllAsRead, onDelete,
                   className="pl-9 h-10 rounded-xl bg-gray-100 border-none focus-visible:ring-1 focus-visible:ring-primary text-gray-900 placeholder:text-gray-500"
                 />
               </div>
-              <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground rounded-xl hover:bg-gray-100">
-                <Filter className="w-5 h-5 text-gray-600" />
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground rounded-xl hover:bg-gray-100">
+                    <Filter className="w-5 h-5 text-gray-600" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>Sort By</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuRadioGroup value={sortOrder} onValueChange={(v) => setSortOrder(v as any)}>
+                    <DropdownMenuRadioItem value="newest">Newest First</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="oldest">Oldest First</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="highest">Amount: High to Low</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="lowest">Amount: Low to High</DropdownMenuRadioItem>
+                  </DropdownMenuRadioGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel>Filter</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuRadioGroup value={filterType} onValueChange={(v) => setFilterType(v as any)}>
+                    <DropdownMenuRadioItem value="all">All Messages</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="unread">Unread Only</DropdownMenuRadioItem>
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             {/* Daily Total Card */}

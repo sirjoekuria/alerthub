@@ -3,7 +3,12 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { Share2, Download, Loader2, Mail, MessageCircle } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Receipt } from '@/hooks/useReceipts';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { format } from 'date-fns';
+import { Share2, Download, Loader2, Mail, MessageCircle } from 'lucide-react';
+import { toast } from 'sonner';
 import { useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -13,6 +18,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
 interface ReceiptCardProps {
@@ -20,7 +26,6 @@ interface ReceiptCardProps {
 }
 
 export const ReceiptCard = ({ receipt }: ReceiptCardProps) => {
-  const { toast } = useToast();
   const receiptRef = useRef<HTMLDivElement>(null);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
@@ -74,8 +79,7 @@ export const ReceiptCard = ({ receipt }: ReceiptCardProps) => {
       window.URL.revokeObjectURL(url);
 
       if (!silent) {
-        toast({
-          title: "Receipt Downloaded",
+        toast.success("Receipt Downloaded", {
           description: "Your receipt has been successfully saved.",
         });
       }
@@ -83,10 +87,8 @@ export const ReceiptCard = ({ receipt }: ReceiptCardProps) => {
     } catch (error) {
       console.error('Error generating PDF:', error);
       if (!silent) {
-        toast({
-          title: "Download Failed",
+        toast.error("Download Failed", {
           description: "There was an error generating your PDF. Please try again.",
-          variant: "destructive",
         });
       }
       return false;
@@ -96,38 +98,27 @@ export const ReceiptCard = ({ receipt }: ReceiptCardProps) => {
   };
 
   const shareViaNative = async () => {
+    setIsSharing(true);
     try {
-      setIsSharing(true);
-      toast({ description: "Preparing receipt for sharing..." });
+      const blob = await generatePdfBlob(3); // Higher quality for sharing
+      if (!blob) throw new Error('Failed to generate receipt');
 
-      const blob = await generatePdfBlob(1.5); // Faster generation
-
-      if (!blob) throw new Error("Failed to generate PDF");
-
-      const file = new File([blob], `receipt_${receipt.receipt_number}.pdf`, {
-        type: 'application/pdf',
-      });
+      const file = new File([blob], `receipt_${receipt.receipt_number}.png`, { type: 'image/png' });
 
       if (navigator.share && navigator.canShare({ files: [file] })) {
         await navigator.share({
           files: [file],
-          title: 'Payment Receipt',
-          text: `Payment Receipt for ${receipt.mpesa_code}`,
+          title: `Receipt - ${receipt.receipt_number}`,
+          text: `Payment Receipt for ${receipt.mpesa_code}`
         });
-        toast({
-          title: "Shared Successfully",
-          description: "Receipt shared successfully.",
-        });
+        toast.success("Receipt shared successfully");
       } else {
-        throw new Error("Sharing not supported");
+        // Fallback or explicit instruction
+        toast.error("Sharing files is not supported on this device/browser");
       }
     } catch (error) {
-      if ((error as Error).name !== 'AbortError') {
-        toast({
-          title: "Share options",
-          description: "Please select a specific app to share with.",
-        });
-      }
+      console.error('Error sharing:', error);
+      toast.error("Failed to share receipt");
     } finally {
       setIsSharing(false);
     }
@@ -135,41 +126,30 @@ export const ReceiptCard = ({ receipt }: ReceiptCardProps) => {
 
   const handleShareWithDownload = async (type: 'email' | 'whatsapp' | 'sms') => {
     setIsSharing(true);
-    toast({ description: "Preparing receipt..." });
+    try {
+      const text = `Receipt: ${receipt.receipt_number}\nAmount: ${receipt.amount}\nCode: ${receipt.mpesa_code}`;
+      let url = '';
 
-    // 1. Auto-download the Receipt first using faster scale
-    const success = await handleDownloadPDF(true); // silent download
-
-    if (success) {
-      // 2. Open the specific app
-      if (type === 'email') {
-        const subject = `Payment Receipt - ${receipt.receipt_number}`;
-        const body = `Please find attached the receipt for transaction ${receipt.mpesa_code}.\n\nReceipt Number: ${receipt.receipt_number}`;
-        window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
-
-        toast({
-          title: "Ready to Send",
-          description: "Receipt downloaded. Please attach it to your email.",
-        });
-      } else if (type === 'whatsapp') {
-        const message = `*PAYMENT RECEIPT*\nReceipt No: ${receipt.receipt_number}\nTransaction: ${receipt.mpesa_code}`;
-        window.open(`https://wa.me/?text=${encodeURIComponent(message)}`);
-
-        toast({
-          title: "Ready to Send",
-          description: "Receipt downloaded. Please attach it to your WhatsApp message.",
-        });
-      } else if (type === 'sms') {
-        const message = `Receipt: ${receipt.receipt_number} | ${receipt.mpesa_code}`;
-        window.open(`sms:?body=${encodeURIComponent(message)}`);
-
-        toast({
-          title: "Ready to Send",
-          description: "Receipt downloaded. Please attach it if your messaging app supports files.",
-        });
+      switch (type) {
+        case 'email':
+          url = `mailto:?subject=Receipt ${receipt.receipt_number}&body=${encodeURIComponent(text)}`;
+          break;
+        case 'whatsapp':
+          url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+          break;
+        case 'sms':
+          url = `sms:?body=${encodeURIComponent(text)}`;
+          break;
       }
+
+      window.open(url, '_blank');
+      toast.success("Opening share link...");
+    } catch (error) {
+      console.error('Error sharing link:', error);
+      toast.error("Failed to open share link");
+    } finally {
+      setIsSharing(false);
     }
-    setIsSharing(false);
   };
 
   return (
@@ -260,31 +240,21 @@ export const ReceiptCard = ({ receipt }: ReceiptCardProps) => {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="default" className="flex-1" disabled={isSharing}>
-              {isSharing ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Share2 className="w-4 h-4 mr-2" />
-              )}
-              Share
+            <Button variant="default" disabled={isSharing}>
+              {isSharing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Share2 className="w-4 h-4 mr-2" />}
+              Share Receipt
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem onClick={shareViaNative}>
-              <Share2 className="w-4 h-4 mr-2" />
-              Share File
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuItem onClick={shareViaNative} className="cursor-pointer font-medium">
+              <Share2 className="w-4 h-4 mr-2" /> Share Receipt Image
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleShareWithDownload('email')}>
-              <Mail className="w-4 h-4 mr-2" />
-              Email
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => handleShareWithDownload('whatsapp')} className="cursor-pointer">
+              <Share2 className="w-4 h-4 mr-2" /> WhatsApp Link
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleShareWithDownload('whatsapp')}>
-              <MessageCircle className="w-4 h-4 mr-2" />
-              WhatsApp
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleShareWithDownload('sms')}>
-              <MessageCircle className="w-4 h-4 mr-2" />
-              SMS
+            <DropdownMenuItem onClick={() => handleShareWithDownload('email')} className="cursor-pointer">
+              <Mail className="w-4 h-4 mr-2" /> Email Link
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
