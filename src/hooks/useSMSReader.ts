@@ -1,6 +1,5 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
-import { parseMpesaMessage } from '@/utils/mpesaParser';
 import { supabase } from '@/integrations/supabase/client';
 import { 
     getNativeOfflineQueue, 
@@ -15,49 +14,42 @@ declare global {
     }
 }
 
-export const useSMSReader = () => {
-    // Queue message for offline storage
-    const queueMessage = (parsedMessage: any) => {
-        try {
-            const queue = JSON.parse(localStorage.getItem('offline_sms_queue') || '[]');
-            queue.push({ ...parsedMessage, queued_at: new Date().toISOString() });
-            localStorage.setItem('offline_sms_queue', JSON.stringify(queue));
-            toast.warning('Offline: Message queued for sync');
-        } catch (error) {
-            console.error('Error queuing message:', error);
-        }
-    };
+// Track recently processed messages to prevent duplicates
+const recentlyProcessed = new Set<string>();
 
-    // Sync offline messages from both localStorage and native queue
+export const useSMSReader = () => {
+    const syncIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Sync offline messages from native queue only
+    // Native background service handles all SMS processing now
     const syncOfflineMessages = async () => {
         if (!navigator.onLine) return;
 
-        // Get messages from localStorage (web app queue)
-        const webQueue = JSON.parse(localStorage.getItem('offline_sms_queue') || '[]');
-        
         // Get messages from native background service queue (Android)
         const nativeQueue = isBackgroundServiceAvailable() ? getNativeOfflineQueue() : [];
         
-        // Combine both queues
-        const combinedQueue = [...webQueue, ...nativeQueue];
-        
-        if (combinedQueue.length === 0) return;
+        if (nativeQueue.length === 0) return;
 
-        console.log(`Attempting to sync ${combinedQueue.length} offline messages (${webQueue.length} web, ${nativeQueue.length} native)...`);
-        const remainingQueue: any[] = [];
+        console.log(`Syncing ${nativeQueue.length} messages from native queue...`);
         let syncedCount = 0;
 
-        for (const msg of combinedQueue) {
+        for (const msg of nativeQueue) {
             try {
-                // Check if message already exists
+                // Skip if recently processed (within last 30 seconds)
+                if (recentlyProcessed.has(msg.mpesa_code)) {
+                    console.log('Skipping recently processed:', msg.mpesa_code);
+                    continue;
+                }
+
+                // Check if message already exists in database
                 const { data: existing } = await supabase
                     .from('messages')
                     .select('id')
                     .eq('mpesa_code', msg.mpesa_code)
-                    .single();
+                    .maybeSingle();
 
                 if (existing) {
-                    console.log('Message already synced:', msg.mpesa_code);
+                    console.log('Message already exists in DB:', msg.mpesa_code);
                     continue;
                 }
 
@@ -72,110 +64,42 @@ export const useSMSReader = () => {
                     is_read: false,
                 });
 
-                if (error) throw error;
+                if (error) {
+                    // Check if it's a duplicate key error
+                    if (error.code === '23505') {
+                        console.log('Duplicate detected by DB constraint:', msg.mpesa_code);
+                        continue;
+                    }
+                    throw error;
+                }
+                
+                // Mark as recently processed
+                recentlyProcessed.add(msg.mpesa_code);
+                setTimeout(() => recentlyProcessed.delete(msg.mpesa_code), 30000);
+                
                 syncedCount++;
             } catch (error) {
                 console.error('Sync failed for message:', msg.mpesa_code, error);
-                remainingQueue.push(msg);
             }
         }
 
-        // Update localStorage with remaining items
-        localStorage.setItem('offline_sms_queue', JSON.stringify(remainingQueue));
-        
-        // Clear native queue since we've processed all items
-        if (nativeQueue.length > 0 && isBackgroundServiceAvailable()) {
+        // Clear native queue after processing
+        if (isBackgroundServiceAvailable()) {
             clearNativeOfflineQueue();
         }
 
         if (syncedCount > 0) {
-            toast.success(`Synced ${syncedCount} offline messages`);
+            toast.success(`Synced ${syncedCount} transactions`);
             window.dispatchEvent(new Event('messages-synced'));
         }
     };
 
     useEffect(() => {
-        const handleSMS = async (e: any) => {
-            const sms = e.data;
-            console.log('SMS received:', sms);
-
-            if (!sms || !sms.body) return;
-
-            // Filter for MPESA messages
-            if (sms.address !== 'MPESA' && !sms.body.includes('Confirmed')) return;
-
-            const parsed = parseMpesaMessage(sms.body, sms.address);
-
-            if (parsed) {
-                toast.info(`New MPESA Transaction: KES ${parsed.amount}`);
-
-                try {
-                    // Check if message already exists (by mpesa_code)
-                    const { data: existing } = await supabase
-                        .from('messages')
-                        .select('id')
-                        .eq('mpesa_code', parsed.mpesa_code)
-                        .single();
-
-                    if (existing) {
-                        console.log('Message already exists:', parsed.mpesa_code);
-                        return;
-                    }
-
-                    const { data: messageData, error } = await supabase.from('messages').insert({
-                        user_id: (await supabase.auth.getUser()).data.user?.id,
-                        ...parsed,
-                        is_read: false,
-                    }).select().single();
-
-                    if (error) throw error;
-
-                    // Auto-generate receipt
-                    if (messageData) {
-                        const { error: receiptError } = await supabase.from('receipts').insert({
-                            user_id: messageData.user_id,
-                            message_id: messageData.id,
-                            receipt_number: `RCPT-${messageData.mpesa_code}`,
-                            amount: messageData.amount,
-                            sender_name: messageData.sender_name || 'Unknown',
-                            sender_phone: messageData.sms_sender,
-                            mpesa_code: messageData.mpesa_code,
-                            transaction_date: messageData.transaction_date,
-                        });
-
-                        if (receiptError) {
-                            console.error('Failed to auto-generate receipt:', receiptError);
-                        } else {
-                            toast.success('Receipt generated automatically');
-                        }
-                    }
-
-                    toast.success('Transaction Saved!');
-                } catch (err) {
-                    console.error('Error saving SMS to Supabase:', err);
-                    // Queue for offline sync if error occurs (likely network)
-                    queueMessage(parsed);
-                }
-            }
-        };
-
-        const startWatching = () => {
-            const SMS = window.SMS;
-            if (!SMS) {
-                console.warn('SMS plugin not detected - are you running on a device?');
-                return;
-            }
-
-            SMS.startWatch(
-                () => {
-                    console.log('SMS Watch started');
-                    document.addEventListener('onSMSArrive', handleSMS);
-                },
-                (err: any) => {
-                    console.error('Failed to start SMS watch:', err);
-                }
-            );
-        };
+        // Native background service handles all SMS processing
+        // This hook only syncs offline queue and listens for updates
+        
+        console.log('SMS Reader initialized - Native background service handles SMS processing');
+        console.log('Background service available:', isBackgroundServiceAvailable());
 
         // Listen for online status to sync
         window.addEventListener('online', syncOfflineMessages);
@@ -185,14 +109,25 @@ export const useSMSReader = () => {
             syncOfflineMessages();
         }
 
-        // Wait for device ready
-        document.addEventListener('deviceready', startWatching);
+        // Periodic sync every 30 seconds to catch any queued messages
+        syncIntervalRef.current = setInterval(() => {
+            if (navigator.onLine) {
+                syncOfflineMessages();
+            }
+        }, 30000);
+
+        // Listen for messages-synced event to refresh UI
+        const handleMessagesSynced = () => {
+            console.log('Messages synced event received');
+        };
+        window.addEventListener('messages-synced', handleMessagesSynced);
 
         return () => {
-            document.removeEventListener('deviceready', startWatching);
-            document.removeEventListener('onSMSArrive', handleSMS);
             window.removeEventListener('online', syncOfflineMessages);
-            if (window.SMS) window.SMS.stopWatch(() => { }, () => { });
+            window.removeEventListener('messages-synced', handleMessagesSynced);
+            if (syncIntervalRef.current) {
+                clearInterval(syncIntervalRef.current);
+            }
         };
     }, []);
 };
