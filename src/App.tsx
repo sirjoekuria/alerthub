@@ -11,9 +11,7 @@ import FinancialReport from "./pages/FinancialReport";
 import Receipts from "./pages/Receipts";
 import NotFound from "./pages/NotFound";
 
-import { useState } from "react";
 import { useSMSReader } from "./hooks/useSMSReader";
-import { IntroVideo } from "./components/IntroVideo";
 
 const SMSListener = () => {
   useSMSReader();
@@ -23,8 +21,6 @@ const SMSListener = () => {
 const queryClient = new QueryClient();
 
 const App = () => {
-  const [showIntro, setShowIntro] = useState(true);
-
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
@@ -33,11 +29,6 @@ const App = () => {
           <Sonner />
           <BrowserRouter>
             <SMSListener />
-            {showIntro && (
-              <div className="fixed inset-0 z-50 bg-background">
-                <IntroVideo onComplete={() => setShowIntro(false)} />
-              </div>
-            )}
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/auth" element={<Auth />} />

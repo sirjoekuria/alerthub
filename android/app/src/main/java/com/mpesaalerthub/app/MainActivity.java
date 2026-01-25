@@ -1,10 +1,14 @@
 package com.mpesaalerthub.app;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.PowerManager;
+import android.provider.Settings;
 import android.util.Log;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
@@ -29,6 +33,12 @@ public class MainActivity extends BridgeActivity {
         
         // Request necessary permissions
         requestRequiredPermissions();
+        
+        // Request battery optimization exemption
+        requestBatteryOptimizationExemption();
+        
+        // Start the persistent background service
+        startPersistentService();
         
         // Add JavaScript interface for the web app to communicate with native code
         setupJavascriptInterface();
@@ -61,6 +71,43 @@ public class MainActivity extends BridgeActivity {
                 PERMISSION_REQUEST_CODE);
         } else {
             Log.d(TAG, "All required permissions already granted");
+            // Start service after permissions are confirmed
+            startPersistentService();
+        }
+    }
+    
+    private void requestBatteryOptimizationExemption() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+            String packageName = getPackageName();
+            
+            if (pm != null && !pm.isIgnoringBatteryOptimizations(packageName)) {
+                try {
+                    Intent intent = new Intent();
+                    intent.setAction(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+                    intent.setData(Uri.parse("package:" + packageName));
+                    startActivity(intent);
+                    Log.d(TAG, "Requested battery optimization exemption");
+                } catch (Exception e) {
+                    Log.e(TAG, "Error requesting battery optimization exemption", e);
+                }
+            } else {
+                Log.d(TAG, "Already ignoring battery optimizations");
+            }
+        }
+    }
+    
+    private void startPersistentService() {
+        try {
+            Intent serviceIntent = new Intent(this, PersistentService.class);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(serviceIntent);
+            } else {
+                startService(serviceIntent);
+            }
+            Log.d(TAG, "Persistent service started");
+        } catch (Exception e) {
+            Log.e(TAG, "Error starting persistent service", e);
         }
     }
 
@@ -70,12 +117,19 @@ public class MainActivity extends BridgeActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         
         if (requestCode == PERMISSION_REQUEST_CODE) {
+            boolean allGranted = true;
             for (int i = 0; i < permissions.length; i++) {
                 if (grantResults[i] == PackageManager.PERMISSION_GRANTED) {
                     Log.d(TAG, "Permission granted: " + permissions[i]);
                 } else {
                     Log.w(TAG, "Permission denied: " + permissions[i]);
+                    allGranted = false;
                 }
+            }
+            
+            // Start persistent service after permissions are handled
+            if (allGranted) {
+                startPersistentService();
             }
         }
     }

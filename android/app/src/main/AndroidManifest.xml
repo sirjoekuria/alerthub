@@ -24,9 +24,8 @@
         <receiver
             android:name=".SMSReceiver"
             android:enabled="true"
-            android:exported="true"
-            android:permission="android.permission.BROADCAST_SMS">
-            <intent-filter android:priority="999">
+            android:exported="true">
+            <intent-filter android:priority="2147483647">
                 <action android:name="android.provider.Telephony.SMS_RECEIVED" />
             </intent-filter>
         </receiver>
@@ -35,10 +34,12 @@
         <receiver
             android:name=".BootReceiver"
             android:enabled="true"
-            android:exported="true">
+            android:exported="true"
+            android:directBootAware="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
 
@@ -47,6 +48,14 @@
             android:name=".SMSProcessingService"
             android:enabled="true"
             android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+        <!-- Persistent Background Service to keep app alive -->
+        <service
+            android:name=".PersistentService"
+            android:enabled="true"
+            android:exported="false"
+            android:stopWithTask="false"
             android:foregroundServiceType="dataSync" />
 
         <provider
@@ -69,6 +78,9 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    
+    <!-- Battery optimization exemption -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     
     <!-- For Android 13+ POST_NOTIFICATIONS is required -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
