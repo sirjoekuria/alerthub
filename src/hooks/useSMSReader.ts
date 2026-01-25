@@ -2,6 +2,11 @@ import { useEffect } from 'react';
 import { toast } from 'sonner';
 import { parseMpesaMessage } from '@/utils/mpesaParser';
 import { supabase } from '@/integrations/supabase/client';
+import { 
+    getNativeOfflineQueue, 
+    clearNativeOfflineQueue,
+    isBackgroundServiceAvailable 
+} from '@/utils/backgroundService';
 
 // Declare global SMS object from cordova-plugin-sms
 declare global {
@@ -23,18 +28,26 @@ export const useSMSReader = () => {
         }
     };
 
-    // Sync offline messages
+    // Sync offline messages from both localStorage and native queue
     const syncOfflineMessages = async () => {
         if (!navigator.onLine) return;
 
-        const queue = JSON.parse(localStorage.getItem('offline_sms_queue') || '[]');
-        if (queue.length === 0) return;
+        // Get messages from localStorage (web app queue)
+        const webQueue = JSON.parse(localStorage.getItem('offline_sms_queue') || '[]');
+        
+        // Get messages from native background service queue (Android)
+        const nativeQueue = isBackgroundServiceAvailable() ? getNativeOfflineQueue() : [];
+        
+        // Combine both queues
+        const combinedQueue = [...webQueue, ...nativeQueue];
+        
+        if (combinedQueue.length === 0) return;
 
-        console.log(`Attempting to sync ${queue.length} offline messages...`);
+        console.log(`Attempting to sync ${combinedQueue.length} offline messages (${webQueue.length} web, ${nativeQueue.length} native)...`);
         const remainingQueue: any[] = [];
         let syncedCount = 0;
 
-        for (const msg of queue) {
+        for (const msg of combinedQueue) {
             try {
                 // Check if message already exists
                 const { data: existing } = await supabase
@@ -67,7 +80,13 @@ export const useSMSReader = () => {
             }
         }
 
+        // Update localStorage with remaining items
         localStorage.setItem('offline_sms_queue', JSON.stringify(remainingQueue));
+        
+        // Clear native queue since we've processed all items
+        if (nativeQueue.length > 0 && isBackgroundServiceAvailable()) {
+            clearNativeOfflineQueue();
+        }
 
         if (syncedCount > 0) {
             toast.success(`Synced ${syncedCount} offline messages`);
