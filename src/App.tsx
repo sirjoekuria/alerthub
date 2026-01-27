@@ -11,6 +11,7 @@ import FinancialReport from "./pages/FinancialReport";
 import Receipts from "./pages/Receipts";
 import NotFound from "./pages/NotFound";
 
+
 import { useSMSReader } from "./hooks/useSMSReader";
 
 const SMSListener = () => {
@@ -39,7 +40,7 @@ const App = () => {
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </BrowserRouter>
+          </BrowserRouter >
         </TooltipProvider >
       </ThemeProvider >
     </QueryClientProvider >

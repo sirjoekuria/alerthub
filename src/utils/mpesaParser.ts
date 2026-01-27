@@ -15,6 +15,11 @@ export const parseMpesaMessage = (text: string, sender: string = "MPESA"): Mpesa
     // 3. Flexible date format
     const receivedPattern = /([A-Z0-9]+)\s+Confirmed\.[\s\S]*?You\s+have\s+received\s+Ksh([0-9,.]+)\s+from\s+(.*?)\s+on\s+(\d{1,2}\/\d{1,2}\/\d{2,4})\s+at\s+(\d{1,2}:\d{2}\s*[AP]M)/i;
 
+    // Strict verification: Must contain "You have received" insensitive of case
+    if (!/You\s+have\s+received/i.test(text)) {
+        return null;
+    }
+
     const match = text.match(receivedPattern);
 
     if (match) {
