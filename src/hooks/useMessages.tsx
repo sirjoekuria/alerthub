@@ -14,6 +14,7 @@ export interface Message {
   is_read: boolean;
   received_timestamp: string;
   created_at: string;
+  balance: number | null;
 }
 
 export const useMessages = (userId: string | undefined) => {
@@ -37,8 +38,14 @@ export const useMessages = (userId: string | undefined) => {
 
       if (error) throw error;
 
-      setMessages(data || []);
-      setUnreadCount(data?.filter(m => !m.is_read).length || 0);
+      // Map data to include balance field (may not be in types yet)
+      const mappedData = (data || []).map(msg => ({
+        ...msg,
+        balance: (msg as Message & { balance?: number | null }).balance ?? null
+      })) as Message[];
+      
+      setMessages(mappedData);
+      setUnreadCount(mappedData.filter(m => !m.is_read).length);
     } catch (error) {
       toast.error('Failed to fetch messages');
       console.error('Error fetching messages:', error);
@@ -83,13 +90,21 @@ export const useMessages = (userId: string | undefined) => {
           console.log('Real-time update:', payload);
 
           if (payload.eventType === 'INSERT') {
-            setMessages(prev => [payload.new as Message, ...prev]);
+            const newMsg = {
+              ...payload.new,
+              balance: (payload.new as Message & { balance?: number | null }).balance ?? null
+            } as Message;
+            setMessages(prev => [newMsg, ...prev]);
             setUnreadCount(prev => prev + 1);
             toast.success('New MPESA message received!');
             notificationSound.play().catch(e => console.error("Error playing sound:", e));
           } else if (payload.eventType === 'UPDATE') {
+            const updatedMsg = {
+              ...payload.new,
+              balance: (payload.new as Message & { balance?: number | null }).balance ?? null
+            } as Message;
             setMessages(prev =>
-              prev.map(msg => msg.id === payload.new.id ? payload.new as Message : msg)
+              prev.map(msg => msg.id === updatedMsg.id ? updatedMsg : msg)
             );
             fetchMessages(); // Refresh unread count
           } else if (payload.eventType === 'DELETE') {

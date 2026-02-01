@@ -24,12 +24,15 @@ function parseMPESAMessage(message: string) {
     recipient: /from\s+([A-Za-z\s]+?)\s+\d{10}/i,
     // Date and time: "on 4/10/25 at 9:49 AM"
     date: /on\s+(\d{1,2}\/\d{1,2}\/\d{2,4})\s+at\s+(\d{1,2}:\d{2}\s*(?:AM|PM))/i,
+    // Balance: "New M-PESA balance is Ksh1,234.00" or "M-PESA balance is Ksh500.00"
+    balance: /(?:New\s+)?M-PESA\s+balance\s+is\s+Ksh([\d,]+\.?\d*)/i,
   };
 
   const codeMatch = message.match(patterns.code);
   const amountMatch = message.match(patterns.amount);
   const recipientMatch = message.match(patterns.recipient);
   const dateMatch = message.match(patterns.date);
+  const balanceMatch = message.match(patterns.balance);
 
   let transactionDate = null;
   if (dateMatch) {
@@ -74,6 +77,7 @@ function parseMPESAMessage(message: string) {
     amount: amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : null,
     senderName: recipientMatch ? recipientMatch[1].trim() : null,
     transactionDate: transactionDate,
+    balance: balanceMatch ? parseFloat(balanceMatch[1].replace(/,/g, '')) : null,
   };
 }
 
@@ -183,6 +187,7 @@ serve(async (req) => {
         sms_sender: payload.sender,
         is_read: false,
         received_timestamp: receivedAt,
+        balance: parsed.balance,
       })
       .select()
       .single();
