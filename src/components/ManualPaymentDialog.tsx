@@ -12,9 +12,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus } from "lucide-react";
+import { Plus, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { manualPaymentSchema, type ManualPaymentInput } from "@/lib/validations";
 
 interface ManualPaymentDialogProps {
   userId: string;
@@ -28,28 +29,37 @@ export const ManualPaymentDialog = ({ userId }: ManualPaymentDialogProps) => {
     senderName: "",
     notes: "",
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const { toast } = useToast();
+
+  const validateForm = (): boolean => {
+    const result = manualPaymentSchema.safeParse(formData);
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      result.error.errors.forEach((err) => {
+        const field = err.path[0] as string;
+        fieldErrors[field] = err.message;
+      });
+      setErrors(fieldErrors);
+      return false;
+    }
+    setErrors({});
+    return true;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.amount || !formData.senderName) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in amount and sender name",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!validateForm()) return;
 
     setLoading(true);
     try {
       const { error } = await supabase.from("messages").insert({
         user_id: userId,
         amount: parseFloat(formData.amount),
-        sender_name: formData.senderName,
+        sender_name: formData.senderName.trim(),
         sms_sender: "CASH",
-        original_text: `Manual cash payment: ${formData.notes || "No notes"}`,
+        original_text: `Manual cash payment: ${formData.notes?.trim() || "No notes"}`,
         mpesa_code: `CASH-${Date.now()}`,
         transaction_date: new Date().toISOString(),
         is_read: false,
@@ -63,6 +73,7 @@ export const ManualPaymentDialog = ({ userId }: ManualPaymentDialogProps) => {
       });
 
       setFormData({ amount: "", senderName: "", notes: "" });
+      setErrors({});
       setOpen(false);
     } catch (error) {
       console.error("Error adding manual payment:", error);
@@ -76,11 +87,29 @@ export const ManualPaymentDialog = ({ userId }: ManualPaymentDialogProps) => {
     }
   };
 
+  const handleOpenChange = (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (!isOpen) {
+      setErrors({});
+      setFormData({ amount: "", senderName: "", notes: "" });
+    }
+  };
+
+  const ErrorMessage = ({ field }: { field: string }) => {
+    if (!errors[field]) return null;
+    return (
+      <p className="text-sm text-destructive mt-1 flex items-center gap-1">
+        <AlertCircle className="w-3 h-3" />
+        {errors[field]}
+      </p>
+    );
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button
-          className="w-full h-12 text-base font-semibold bg-green-600 hover:bg-green-700 text-white rounded-xl shadow-md transition-all hover:shadow-lg active:scale-[0.98]"
+          className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-md transition-all hover:shadow-lg active:scale-[0.98]"
         >
           <Plus className="w-5 h-5 mr-2" />
           Add Cash Payment
@@ -101,11 +130,13 @@ export const ManualPaymentDialog = ({ userId }: ManualPaymentDialogProps) => {
                 id="amount"
                 type="number"
                 step="0.01"
+                min="0"
                 placeholder="0.00"
                 value={formData.amount}
                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                required
+                className={errors.amount ? "border-destructive" : ""}
               />
+              <ErrorMessage field="amount" />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="senderName">Sender/Payer Name</Label>
@@ -114,8 +145,9 @@ export const ManualPaymentDialog = ({ userId }: ManualPaymentDialogProps) => {
                 placeholder="John Doe"
                 value={formData.senderName}
                 onChange={(e) => setFormData({ ...formData, senderName: e.target.value })}
-                required
+                className={errors.senderName ? "border-destructive" : ""}
               />
+              <ErrorMessage field="senderName" />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="notes">Notes (Optional)</Label>
@@ -125,7 +157,9 @@ export const ManualPaymentDialog = ({ userId }: ManualPaymentDialogProps) => {
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 rows={3}
+                className={errors.notes ? "border-destructive" : ""}
               />
+              <ErrorMessage field="notes" />
             </div>
           </div>
           <DialogFooter>
