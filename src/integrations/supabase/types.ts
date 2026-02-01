@@ -47,6 +47,7 @@ export type Database = {
       messages: {
         Row: {
           amount: number | null
+          balance: number | null
           created_at: string | null
           id: string
           is_read: boolean | null
@@ -60,6 +61,7 @@ export type Database = {
         }
         Insert: {
           amount?: number | null
+          balance?: number | null
           created_at?: string | null
           id?: string
           is_read?: boolean | null
@@ -73,6 +75,7 @@ export type Database = {
         }
         Update: {
           amount?: number | null
+          balance?: number | null
           created_at?: string | null
           id?: string
           is_read?: boolean | null
