@@ -5,6 +5,7 @@ export interface MpesaMessage {
     transaction_date: string;
     original_text: string;
     sms_sender: string;
+    balance: number | null;
 }
 
 export const parseMpesaMessage = (text: string, sender: string = "MPESA"): MpesaMessage | null => {
@@ -50,13 +51,19 @@ export const parseMpesaMessage = (text: string, sender: string = "MPESA"): Mpesa
 
         const date = new Date(fullYear, month - 1, day, hours, minutes);
 
+        // Extract balance - patterns like "New M-PESA balance is Ksh1,234.00" or "M-PESA balance is Ksh500.00"
+        const balancePattern = /(?:New\s+)?M-PESA\s+balance\s+is\s+Ksh([0-9,]+\.?\d*)/i;
+        const balanceMatch = text.match(balancePattern);
+        const balance = balanceMatch ? parseFloat(balanceMatch[1].replace(/,/g, '')) : null;
+
         return {
             mpesa_code: code,
             amount,
             sender_name: senderName,
             transaction_date: date.toISOString(),
             original_text: text,
-            sms_sender: sender
+            sms_sender: sender,
+            balance
         };
     }
 
