@@ -12,6 +12,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ManualPaymentDialog } from "@/components/ManualPaymentDialog";
+import { haptics } from "@/utils/haptics";
 
 const Dashboard = () => {
   const { user, signOut, loading: authLoading } = useAuth();
@@ -85,7 +86,7 @@ const Dashboard = () => {
 
         <div
           className="flex items-center justify-between p-3 rounded-xl bg-green-50 text-green-700 cursor-pointer hover:bg-green-100 transition-colors"
-          onClick={() => { }} // Inbox is default view
+          onClick={() => { haptics.light(); }} // Inbox is default view
         >
           <div className="flex items-center gap-3">
             <Inbox className="w-5 h-5" />
@@ -101,7 +102,10 @@ const Dashboard = () => {
         <Button
           variant="ghost"
           className="w-full justify-between items-center p-3 h-auto text-base hover:bg-gray-100 rounded-xl font-normal text-muted-foreground hover:text-gray-900 group"
-          onClick={() => navigate("/profile")}
+          onClick={() => {
+            haptics.light();
+            navigate("/profile");
+          }}
         >
           <div className="flex items-center gap-3">
             <User className="w-5 h-5" />
@@ -113,7 +117,10 @@ const Dashboard = () => {
         <Button
           variant="ghost"
           className="w-full justify-between items-center p-3 h-auto text-base hover:bg-gray-100 rounded-xl font-normal text-muted-foreground hover:text-gray-900 group"
-          onClick={() => navigate("/financial-report")}
+          onClick={() => {
+            haptics.light();
+            navigate("/financial-report");
+          }}
         >
           <div className="flex items-center gap-3">
             <TrendingUp className="w-5 h-5" />
@@ -124,7 +131,10 @@ const Dashboard = () => {
         <Button
           variant="ghost"
           className="w-full justify-between items-center p-3 h-auto text-base hover:bg-gray-100 rounded-xl font-normal text-muted-foreground hover:text-gray-900 group"
-          onClick={() => navigate("/receipts")}
+          onClick={() => {
+            haptics.light();
+            navigate("/receipts");
+          }}
         >
           <div className="flex items-center gap-3">
             <Receipt className="w-5 h-5" />
@@ -138,19 +148,28 @@ const Dashboard = () => {
         <p className="px-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Theme</p>
         <div className="grid grid-cols-3 gap-2 bg-gray-100 p-1 rounded-xl">
           <button
-            onClick={() => setTheme("light")}
+            onClick={() => {
+              haptics.light();
+              setTheme("light");
+            }}
             className="flex items-center justify-center py-1.5 rounded-lg bg-white text-gray-900 shadow-sm text-sm font-medium transition-all"
           >
             Light
           </button>
           <button
-            onClick={() => setTheme("dark")}
+            onClick={() => {
+              haptics.light();
+              setTheme("dark");
+            }}
             className="flex items-center justify-center py-1.5 rounded-lg text-gray-500 hover:text-gray-900 text-sm font-medium transition-all"
           >
             Dark
           </button>
           <button
-            onClick={() => setTheme("system")}
+            onClick={() => {
+              haptics.light();
+              setTheme("system");
+            }}
             className="flex items-center justify-center py-1.5 rounded-lg text-gray-500 hover:text-gray-900 text-sm font-medium transition-all"
           >
             System

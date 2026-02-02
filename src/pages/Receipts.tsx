@@ -4,6 +4,7 @@ import { ReceiptCard } from '@/components/ReceiptCard';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Receipt } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { haptics } from '@/utils/haptics';
 
 export default function Receipts() {
   const navigate = useNavigate();
@@ -19,7 +20,10 @@ export default function Receipts() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate('/dashboard')}
+              onClick={() => {
+                haptics.light();
+                navigate('/dashboard');
+              }}
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>

@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { ArrowLeft, ArrowUpRight, Upload } from "lucide-react";
+import { haptics } from "@/utils/haptics";
 
 const Profile = () => {
   const { user, loading: authLoading } = useAuth();
@@ -173,7 +174,10 @@ const Profile = () => {
       <header className="bg-white border-b sticky top-0 z-10">
         <div className="px-4 h-16 flex items-center justify-between max-w-lg mx-auto w-full">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")} className="-ml-2">
+            <Button variant="ghost" size="icon" onClick={() => {
+              haptics.light();
+              navigate("/dashboard");
+            }} className="-ml-2">
               <ArrowLeft className="w-6 h-6" />
             </Button>
             <h1 className="text-xl font-bold">My Profile</h1>
@@ -197,7 +201,10 @@ const Profile = () => {
           </div>
           <div className="w-full">
             <Label htmlFor="avatar-upload" className="block w-full">
-              <div className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 rounded-xl text-center cursor-pointer transition-colors shadow-sm hover:shadow active:scale-[0.99]">
+              <div
+                onClick={() => haptics.light()}
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 rounded-xl text-center cursor-pointer transition-colors shadow-sm hover:shadow active:scale-[0.99]"
+              >
                 Upload New Avatar
               </div>
             </Label>
@@ -227,6 +234,7 @@ const Profile = () => {
             <Button
               type="submit"
               disabled={loading}
+              onClick={() => haptics.medium()}
               className="w-full h-12 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold shadow-sm hover:shadow transition-all"
             >
               {loading ? "Updating..." : "Update Profile"}
@@ -249,6 +257,7 @@ const Profile = () => {
             <Button
               type="submit"
               disabled={loading}
+              onClick={() => haptics.medium()}
               className="w-full h-12 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold shadow-sm hover:shadow transition-all"
             >
               {loading ? "Updating..." : "Update Email"}
@@ -283,6 +292,7 @@ const Profile = () => {
             <Button
               type="submit"
               disabled={loading}
+              onClick={() => haptics.medium()}
               className="w-full h-12 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold shadow-sm hover:shadow transition-all"
             >
               {loading ? "Updating..." : "Update Password"}
