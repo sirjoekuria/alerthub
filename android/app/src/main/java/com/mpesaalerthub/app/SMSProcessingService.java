@@ -21,6 +21,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -42,13 +43,13 @@ public class SMSProcessingService extends Service {
     private static final String TAG = "SMSProcessingService";
     private static final String CHANNEL_ID = "mpesa_sms_channel";
     private static final int NOTIFICATION_ID = 1001;
-    
+
     private static final String PREFS_NAME = "MpesaAlertHubPrefs";
     private static final String PREFS_PROCESSED = "processed_codes";
-    
+
     // Static set to track recently processed codes in memory
     private static final Set<String> recentlyProcessed = new HashSet<>();
-    
+
     private HandlerThread handlerThread;
     private Handler backgroundHandler;
 
@@ -57,7 +58,7 @@ public class SMSProcessingService extends Service {
         super.onCreate();
         Log.d(TAG, "SMSProcessingService created");
         createNotificationChannel();
-        
+
         // Create background thread for network operations
         handlerThread = new HandlerThread("SMSProcessingThread");
         handlerThread.start();
@@ -67,7 +68,7 @@ public class SMSProcessingService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d(TAG, "SMSProcessingService onStartCommand");
-        
+
         // Start as foreground service
         startForeground(NOTIFICATION_ID, createNotification("Processing M-Pesa transaction..."));
 
@@ -77,7 +78,7 @@ public class SMSProcessingService extends Service {
             long timestamp = intent.getLongExtra("timestamp", System.currentTimeMillis());
 
             Log.d(TAG, "Received message from: " + sender);
-            
+
             if (message != null) {
                 processMessageInBackground(sender, message, timestamp);
             } else {
@@ -96,56 +97,59 @@ public class SMSProcessingService extends Service {
         backgroundHandler.post(() -> {
             try {
                 Log.d(TAG, "Processing message in background thread");
-                
+
                 // Parse the M-Pesa message
                 MpesaTransaction transaction = parseMpesaMessage(message, sender);
-                
+
                 if (transaction != null) {
                     Log.d(TAG, "Parsed transaction: " + transaction.mpesaCode + " - KES " + transaction.amount);
-                    
+
                     // Check if already processed (in-memory check)
                     if (recentlyProcessed.contains(transaction.mpesaCode)) {
                         Log.d(TAG, "Already processed in memory: " + transaction.mpesaCode);
                         stopSelf();
                         return;
                     }
-                    
+
                     // Check if already processed (persistent check)
                     if (isAlreadyProcessed(transaction.mpesaCode)) {
                         Log.d(TAG, "Already processed in storage: " + transaction.mpesaCode);
                         stopSelf();
                         return;
                     }
-                    
+
                     // Mark as processing
                     recentlyProcessed.add(transaction.mpesaCode);
-                    
+
                     // Update notification
                     updateNotification("New transaction: KES " + transaction.amount);
-                    
+
                     // Check credentials
                     SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
                     String supabaseUrl = prefs.getString("supabase_url", "");
                     String userId = prefs.getString("user_id", "");
-                    
+
                     Log.d(TAG, "Supabase URL: " + (supabaseUrl.isEmpty() ? "NOT SET" : "SET"));
                     Log.d(TAG, "User ID: " + (userId.isEmpty() ? "NOT SET" : "SET"));
-                    
+
                     if (supabaseUrl.isEmpty() || userId.isEmpty()) {
                         Log.w(TAG, "Credentials not configured, queuing message");
                         queueForLaterSync(transaction);
-                        showNotification("Transaction queued", "KES " + transaction.amount + " - Will sync when app is opened");
+                        showNotification("Transaction queued",
+                                "KES " + transaction.amount + " - Will sync when app is opened");
                     } else {
                         // Save to Supabase
                         boolean saved = saveToSupabase(transaction);
-                        
+
                         if (saved) {
                             markAsProcessed(transaction.mpesaCode);
                             showSuccessNotification(transaction);
                         } else {
                             // Queue for later sync if save failed
                             queueForLaterSync(transaction);
-                            showNotification("Transaction queued", "KES " + transaction.amount + " - Will retry later");
+                            showNotification("Transaction queued",
+                                    "KES " + transaction.amount + " - Awaiting retry (check connection)");
+                            Log.e(TAG, "Sync failed for " + transaction.mpesaCode + ". Message queued.");
                         }
                     }
                 } else {
@@ -159,17 +163,17 @@ public class SMSProcessingService extends Service {
             }
         });
     }
-    
+
     private boolean isAlreadyProcessed(String mpesaCode) {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         String processedCodes = prefs.getString(PREFS_PROCESSED, "");
         return processedCodes.contains(mpesaCode);
     }
-    
+
     private void markAsProcessed(String mpesaCode) {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         String processedCodes = prefs.getString(PREFS_PROCESSED, "");
-        
+
         // Keep only last 100 codes to prevent unlimited growth
         String[] codes = processedCodes.split(",");
         StringBuilder newCodes = new StringBuilder();
@@ -180,7 +184,7 @@ public class SMSProcessingService extends Service {
             }
         }
         newCodes.append(mpesaCode);
-        
+
         prefs.edit().putString(PREFS_PROCESSED, newCodes.toString()).apply();
         Log.d(TAG, "Marked as processed: " + mpesaCode);
     }
@@ -188,7 +192,7 @@ public class SMSProcessingService extends Service {
     private MpesaTransaction parseMpesaMessage(String message, String sender) {
         try {
             Log.d(TAG, "Parsing message: " + message.substring(0, Math.min(50, message.length())) + "...");
-            
+
             MpesaTransaction transaction = new MpesaTransaction();
             transaction.originalText = message;
             transaction.smsSender = sender;
@@ -219,14 +223,16 @@ public class SMSProcessingService extends Service {
             }
 
             // Extract sender name (for received money)
-            Pattern senderPattern = Pattern.compile("from\\s+([A-Z][A-Z\\s]+?)\\s+(?:\\d{10}|for)", Pattern.CASE_INSENSITIVE);
+            Pattern senderPattern = Pattern.compile("from\\s+([A-Z][A-Z\\s]+?)\\s+(?:\\d{10}|for)",
+                    Pattern.CASE_INSENSITIVE);
             Matcher senderMatcher = senderPattern.matcher(message);
             if (senderMatcher.find()) {
                 transaction.senderName = senderMatcher.group(1).trim();
                 Log.d(TAG, "Found sender: " + transaction.senderName);
             } else {
                 // Try paybill/till pattern
-                Pattern paybillPattern = Pattern.compile("(?:to|paid)\\s+([A-Za-z0-9][A-Za-z0-9\\s]+?)\\s+(?:for|on)", Pattern.CASE_INSENSITIVE);
+                Pattern paybillPattern = Pattern.compile("(?:to|paid)\\s+([A-Za-z0-9][A-Za-z0-9\\s]+?)\\s+(?:for|on)",
+                        Pattern.CASE_INSENSITIVE);
                 Matcher paybillMatcher = paybillPattern.matcher(message);
                 if (paybillMatcher.find()) {
                     transaction.senderName = paybillMatcher.group(1).trim();
@@ -235,7 +241,9 @@ public class SMSProcessingService extends Service {
             }
 
             // Extract date/time
-            Pattern datePattern = Pattern.compile("on\\s+(\\d{1,2}/\\d{1,2}/\\d{2,4})\\s+at\\s+(\\d{1,2}:\\d{2}\\s*(?:AM|PM)?)", Pattern.CASE_INSENSITIVE);
+            Pattern datePattern = Pattern.compile(
+                    "on\\s+(\\d{1,2}/\\d{1,2}/\\d{2,4})\\s+at\\s+(\\d{1,2}:\\d{2}\\s*(?:AM|PM)?)",
+                    Pattern.CASE_INSENSITIVE);
             Matcher dateMatcher = datePattern.matcher(message);
             if (dateMatcher.find()) {
                 String dateStr = dateMatcher.group(1);
@@ -243,7 +251,8 @@ public class SMSProcessingService extends Service {
                 transaction.transactionDate = parseDateTime(dateStr, timeStr);
                 Log.d(TAG, "Found date: " + transaction.transactionDate);
             } else {
-                transaction.transactionDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).format(new Date());
+                transaction.transactionDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
+                        .format(new Date());
             }
 
             // Determine transaction type
@@ -265,7 +274,8 @@ public class SMSProcessingService extends Service {
                 Log.d(TAG, "Successfully parsed transaction");
                 return transaction;
             } else {
-                Log.w(TAG, "Missing essential fields - code: " + transaction.mpesaCode + ", amount: " + transaction.amount);
+                Log.w(TAG, "Missing essential fields - code: " + transaction.mpesaCode + ", amount: "
+                        + transaction.amount);
             }
 
         } catch (Exception e) {
@@ -301,7 +311,7 @@ public class SMSProcessingService extends Service {
         HttpURLConnection connection = null;
         try {
             Log.d(TAG, "Checking if message exists: " + transaction.mpesaCode);
-            
+
             // First check if message already exists
             if (messageExists(supabaseUrl, supabaseKey, accessToken, transaction.mpesaCode)) {
                 Log.d(TAG, "Message already exists in database: " + transaction.mpesaCode);
@@ -309,13 +319,14 @@ public class SMSProcessingService extends Service {
             }
 
             Log.d(TAG, "Saving to Supabase...");
-            
+
             URL url = new URL(supabaseUrl + "/rest/v1/messages");
             connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("POST");
             connection.setRequestProperty("Content-Type", "application/json");
             connection.setRequestProperty("apikey", supabaseKey);
-            connection.setRequestProperty("Authorization", "Bearer " + (accessToken.isEmpty() ? supabaseKey : accessToken));
+            connection.setRequestProperty("Authorization",
+                    "Bearer " + (accessToken.isEmpty() ? supabaseKey : accessToken));
             connection.setRequestProperty("Prefer", "return=representation");
             connection.setConnectTimeout(30000);
             connection.setReadTimeout(30000);
@@ -333,56 +344,72 @@ public class SMSProcessingService extends Service {
 
             String jsonString = json.toString();
             Log.d(TAG, "Sending JSON: " + jsonString);
-            
+
             try (OutputStream os = connection.getOutputStream()) {
                 byte[] input = jsonString.getBytes(StandardCharsets.UTF_8);
                 os.write(input, 0, input.length);
             }
 
             int responseCode = connection.getResponseCode();
-            Log.d(TAG, "Response code: " + responseCode);
-            
+            Log.d(TAG, "Supabase POST Response code: " + responseCode);
+
             if (responseCode == 201 || responseCode == 200) {
                 Log.d(TAG, "Successfully saved to Supabase");
-                
+
                 // Read response to get message ID for receipt creation
-                BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                StringBuilder response = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    response.append(line);
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+                    StringBuilder response = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        response.append(line);
+                    }
+                    Log.d(TAG, "Response: " + response.toString());
+
+                    // Try to create receipt
+                    createReceipt(supabaseUrl, supabaseKey, accessToken, userId, transaction, response.toString());
+                } catch (Exception e) {
+                    Log.e(TAG, "Error reading success response", e);
                 }
-                reader.close();
-                
-                Log.d(TAG, "Response: " + response.toString());
-                
-                // Try to create receipt
-                createReceipt(supabaseUrl, supabaseKey, accessToken, userId, transaction, response.toString());
-                
+
                 return true;
             } else {
                 // Read error response
-                BufferedReader errorReader = new BufferedReader(new InputStreamReader(connection.getErrorStream()));
-                StringBuilder errorResponse = new StringBuilder();
-                String errorLine;
-                while ((errorLine = errorReader.readLine()) != null) {
-                    errorResponse.append(errorLine);
+                try (InputStream errorStream = connection.getErrorStream()) {
+                    if (errorStream != null) {
+                        try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(errorStream))) {
+                            StringBuilder errorResponse = new StringBuilder();
+                            String errorLine;
+                            while ((errorLine = errorReader.readLine()) != null) {
+                                errorResponse.append(errorLine);
+                            }
+                            Log.e(TAG,
+                                    "Failed to save to Supabase: " + responseCode + " - " + errorResponse.toString());
+
+                            // Check if it's a duplicate key error
+                            if (errorResponse.toString().contains("duplicate")
+                                    || errorResponse.toString().contains("23505")) {
+                                Log.d(TAG, "Duplicate detected by database, marking as success");
+                                return true;
+                            }
+                        }
+                    } else {
+                        Log.e(TAG, "Failed to save to Supabase: " + responseCode + " (no error stream)");
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Error reading error response", e);
                 }
-                errorReader.close();
-                
-                Log.e(TAG, "Failed to save to Supabase: " + responseCode + " - " + errorResponse.toString());
-                
-                // Check if it's a duplicate key error
-                if (errorResponse.toString().contains("duplicate") || errorResponse.toString().contains("23505")) {
-                    Log.d(TAG, "Duplicate detected by database, marking as success");
-                    return true;
-                }
-                
+
                 return false;
             }
 
+        } catch (java.net.SocketTimeoutException e) {
+            Log.e(TAG, "Connection timeout saving to Supabase", e);
+            return false;
+        } catch (java.net.UnknownHostException e) {
+            Log.e(TAG, "Unknown host - device might be offline or DNS failing", e);
+            return false;
         } catch (Exception e) {
-            Log.e(TAG, "Error saving to Supabase", e);
+            Log.e(TAG, "Critical error saving to Supabase", e);
             return false;
         } finally {
             if (connection != null) {
@@ -398,7 +425,8 @@ public class SMSProcessingService extends Service {
             connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
             connection.setRequestProperty("apikey", supabaseKey);
-            connection.setRequestProperty("Authorization", "Bearer " + (accessToken.isEmpty() ? supabaseKey : accessToken));
+            connection.setRequestProperty("Authorization",
+                    "Bearer " + (accessToken.isEmpty() ? supabaseKey : accessToken));
             connection.setConnectTimeout(10000);
             connection.setReadTimeout(10000);
 
@@ -411,7 +439,7 @@ public class SMSProcessingService extends Service {
                     response.append(line);
                 }
                 reader.close();
-                
+
                 // Check if response is not an empty array
                 String responseStr = response.toString().trim();
                 boolean exists = !responseStr.equals("[]");
@@ -428,8 +456,8 @@ public class SMSProcessingService extends Service {
         return false;
     }
 
-    private void createReceipt(String supabaseUrl, String supabaseKey, String accessToken, 
-                               String userId, MpesaTransaction transaction, String messageResponse) {
+    private void createReceipt(String supabaseUrl, String supabaseKey, String accessToken,
+            String userId, MpesaTransaction transaction, String messageResponse) {
         HttpURLConnection connection = null;
         try {
             // Parse message ID from response
@@ -449,7 +477,8 @@ public class SMSProcessingService extends Service {
             connection.setRequestMethod("POST");
             connection.setRequestProperty("Content-Type", "application/json");
             connection.setRequestProperty("apikey", supabaseKey);
-            connection.setRequestProperty("Authorization", "Bearer " + (accessToken.isEmpty() ? supabaseKey : accessToken));
+            connection.setRequestProperty("Authorization",
+                    "Bearer " + (accessToken.isEmpty() ? supabaseKey : accessToken));
             connection.setConnectTimeout(10000);
             connection.setReadTimeout(10000);
             connection.setDoOutput(true);
@@ -486,10 +515,10 @@ public class SMSProcessingService extends Service {
     private void queueForLaterSync(MpesaTransaction transaction) {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         String existingQueue = prefs.getString("offline_queue", "[]");
-        
+
         try {
             JSONArray queueArray = new JSONArray(existingQueue);
-            
+
             // Check if already in queue
             for (int i = 0; i < queueArray.length(); i++) {
                 JSONObject item = queueArray.getJSONObject(i);
@@ -498,7 +527,7 @@ public class SMSProcessingService extends Service {
                     return;
                 }
             }
-            
+
             JSONObject json = new JSONObject();
             json.put("mpesa_code", transaction.mpesaCode);
             json.put("amount", transaction.amount);
@@ -507,12 +536,12 @@ public class SMSProcessingService extends Service {
             json.put("original_text", transaction.originalText);
             json.put("sms_sender", transaction.smsSender);
             json.put("queued_at", new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).format(new Date()));
-            
+
             queueArray.put(json);
-            
+
             prefs.edit().putString("offline_queue", queueArray.toString()).apply();
             Log.d(TAG, "Message queued for later sync: " + transaction.mpesaCode);
-            
+
         } catch (Exception e) {
             Log.e(TAG, "Error queuing message", e);
         }
@@ -521,12 +550,11 @@ public class SMSProcessingService extends Service {
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
-                CHANNEL_ID,
-                "M-Pesa SMS Processing",
-                NotificationManager.IMPORTANCE_DEFAULT
-            );
+                    CHANNEL_ID,
+                    "M-Pesa SMS Processing",
+                    NotificationManager.IMPORTANCE_DEFAULT);
             channel.setDescription("Notifications for M-Pesa transaction processing");
-            
+
             NotificationManager manager = getSystemService(NotificationManager.class);
             if (manager != null) {
                 manager.createNotificationChannel(channel);
@@ -537,17 +565,16 @@ public class SMSProcessingService extends Service {
     private Notification createNotification(String text) {
         Intent notificationIntent = new Intent(this, MainActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(
-            this, 0, notificationIntent, 
-            PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
-        );
+                this, 0, notificationIntent,
+                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
 
         return new NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("M-Pesa Alert Hub")
-            .setContentText(text)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentIntent(pendingIntent)
-            .setOngoing(true)
-            .build();
+                .setContentTitle("M-Pesa Alert Hub")
+                .setContentText(text)
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setContentIntent(pendingIntent)
+                .setOngoing(true)
+                .build();
     }
 
     private void updateNotification(String text) {
@@ -556,23 +583,22 @@ public class SMSProcessingService extends Service {
             manager.notify(NOTIFICATION_ID, createNotification(text));
         }
     }
-    
+
     private void showNotification(String title, String text) {
         NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         if (manager != null) {
             Intent intent = new Intent(this, MainActivity.class);
             PendingIntent pendingIntent = PendingIntent.getActivity(
-                this, 0, intent, 
-                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
-            );
+                    this, 0, intent,
+                    PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
 
             Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle(title)
-                .setContentText(text)
-                .setSmallIcon(android.R.drawable.ic_dialog_info)
-                .setContentIntent(pendingIntent)
-                .setAutoCancel(true)
-                .build();
+                    .setContentTitle(title)
+                    .setContentText(text)
+                    .setSmallIcon(android.R.drawable.ic_dialog_info)
+                    .setContentIntent(pendingIntent)
+                    .setAutoCancel(true)
+                    .build();
 
             manager.notify((int) System.currentTimeMillis(), notification);
         }
@@ -583,21 +609,20 @@ public class SMSProcessingService extends Service {
         if (manager != null) {
             Intent intent = new Intent(this, MainActivity.class);
             PendingIntent pendingIntent = PendingIntent.getActivity(
-                this, 0, intent, 
-                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
-            );
+                    this, 0, intent,
+                    PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
 
             String transactionType = transaction.transactionType != null ? transaction.transactionType : "Transaction";
             String title = "M-Pesa " + transactionType.substring(0, 1).toUpperCase() + transactionType.substring(1);
-            
+
             Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle(title)
-                .setContentText("KES " + transaction.amount + " - " + transaction.mpesaCode)
-                .setSmallIcon(android.R.drawable.ic_dialog_info)
-                .setContentIntent(pendingIntent)
-                .setAutoCancel(true)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .build();
+                    .setContentTitle(title)
+                    .setContentText("KES " + transaction.amount + " - " + transaction.mpesaCode)
+                    .setSmallIcon(android.R.drawable.ic_dialog_info)
+                    .setContentIntent(pendingIntent)
+                    .setAutoCancel(true)
+                    .setPriority(NotificationCompat.PRIORITY_HIGH)
+                    .build();
 
             manager.notify((int) System.currentTimeMillis(), notification);
         }

@@ -39,6 +39,13 @@ export const useStats = (userId: string | undefined) => {
 
     fetchStats();
 
+    const handleSync = () => {
+      console.log('Stats: Sync detected, refreshing...');
+      fetchStats();
+    };
+
+    window.addEventListener('messages-synced', handleSync);
+
     // Subscribe to realtime updates
     const channel = supabase
       .channel('message_stats_changes')
@@ -66,6 +73,7 @@ export const useStats = (userId: string | undefined) => {
       .subscribe();
 
     return () => {
+      window.removeEventListener('messages-synced', handleSync);
       supabase.removeChannel(channel);
     };
   }, [userId]);
