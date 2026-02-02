@@ -197,9 +197,16 @@ public class SMSProcessingService extends Service {
         try {
             Log.d(TAG, "Parsing message: " + message.substring(0, Math.min(50, message.length())) + "...");
 
+            // Strict Filter: Only process "You have received" messages
+            if (!message.toLowerCase().contains("you have received")) {
+                Log.d(TAG, "Ignoring message: Not a 'received' transaction");
+                return null;
+            }
+
             MpesaTransaction transaction = new MpesaTransaction();
             transaction.originalText = message;
             transaction.smsSender = sender;
+            transaction.transactionType = "received";
 
             // Extract M-Pesa code (e.g., "ABC123XYZ Confirmed")
             Pattern codePattern = Pattern.compile("([A-Z0-9]{10})\\s+Confirmed", Pattern.CASE_INSENSITIVE);
@@ -207,44 +214,27 @@ public class SMSProcessingService extends Service {
             if (codeMatcher.find()) {
                 transaction.mpesaCode = codeMatcher.group(1).toUpperCase();
                 Log.d(TAG, "Found M-Pesa code: " + transaction.mpesaCode);
-            } else {
-                // Try alternative pattern - code at start
-                Pattern altCodePattern = Pattern.compile("^([A-Z0-9]{10})", Pattern.CASE_INSENSITIVE);
-                Matcher altMatcher = altCodePattern.matcher(message.trim());
-                if (altMatcher.find()) {
-                    transaction.mpesaCode = altMatcher.group(1).toUpperCase();
-                    Log.d(TAG, "Found M-Pesa code (alt): " + transaction.mpesaCode);
-                }
             }
 
-            // Extract amount - handle various formats
-            Pattern amountPattern = Pattern.compile("Ksh\\s?([\\d,]+\\.?\\d*)", Pattern.CASE_INSENSITIVE);
+            // Extract amount received (e.g., "received Ksh1,234.56")
+            Pattern amountPattern = Pattern.compile("received\\s+Ksh\\s?([\\d,]+\\.?\\d*)", Pattern.CASE_INSENSITIVE);
             Matcher amountMatcher = amountPattern.matcher(message);
             if (amountMatcher.find()) {
                 String amountStr = amountMatcher.group(1).replace(",", "");
                 transaction.amount = Double.parseDouble(amountStr);
-                Log.d(TAG, "Found amount: " + transaction.amount);
+                Log.d(TAG, "Found amount received: " + transaction.amount);
             }
 
-            // Extract sender name (for received money)
-            Pattern senderPattern = Pattern.compile("from\\s+([A-Z][A-Z\\s]+?)\\s+(?:\\d{10}|for)",
+            // Extract sender name (e.g., "from JOHN DOE 07...")
+            Pattern senderPattern = Pattern.compile("from\\s+([A-Z][A-Z\\s0-9]+?)\\s+(?:\\d{10}|for)",
                     Pattern.CASE_INSENSITIVE);
             Matcher senderMatcher = senderPattern.matcher(message);
             if (senderMatcher.find()) {
                 transaction.senderName = senderMatcher.group(1).trim();
                 Log.d(TAG, "Found sender: " + transaction.senderName);
-            } else {
-                // Try paybill/till pattern
-                Pattern paybillPattern = Pattern.compile("(?:to|paid)\\s+([A-Za-z0-9][A-Za-z0-9\\s]+?)\\s+(?:for|on)",
-                        Pattern.CASE_INSENSITIVE);
-                Matcher paybillMatcher = paybillPattern.matcher(message);
-                if (paybillMatcher.find()) {
-                    transaction.senderName = paybillMatcher.group(1).trim();
-                    Log.d(TAG, "Found recipient: " + transaction.senderName);
-                }
             }
 
-            // Extract date/time
+            // Extract date/time (e.g., "on 2/2/26 at 10:00 PM")
             Pattern datePattern = Pattern.compile(
                     "on\\s+(\\d{1,2}/\\d{1,2}/\\d{2,4})\\s+at\\s+(\\d{1,2}:\\d{2}\\s*(?:AM|PM)?)",
                     Pattern.CASE_INSENSITIVE);
@@ -253,28 +243,14 @@ public class SMSProcessingService extends Service {
                 String dateStr = dateMatcher.group(1);
                 String timeStr = dateMatcher.group(2);
                 transaction.transactionDate = parseDateTime(dateStr, timeStr);
-                Log.d(TAG, "Found date: " + transaction.transactionDate);
+                Log.d(TAG, "Found transaction date: " + transaction.transactionDate);
             } else {
                 transaction.transactionDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
                         .format(new Date());
             }
 
-            // Determine transaction type
-            String lowerMessage = message.toLowerCase();
-            if (lowerMessage.contains("received")) {
-                transaction.transactionType = "received";
-            } else if (lowerMessage.contains("sent to") || lowerMessage.contains("paid to")) {
-                transaction.transactionType = "sent";
-            } else if (lowerMessage.contains("bought") || lowerMessage.contains("airtime")) {
-                transaction.transactionType = "airtime";
-            } else if (lowerMessage.contains("withdraw")) {
-                transaction.transactionType = "withdrawal";
-            } else {
-                transaction.transactionType = "other";
-            }
-
-            // Extract balance
-            Pattern balancePattern = Pattern.compile("New M-PESA balance is Ksh\\s?([\\d,]+\\.?\\d*)",
+            // Extract balance (e.g., "New M-PESA balance is Ksh10,000.00")
+            Pattern balancePattern = Pattern.compile("balance\\s+is\\s+Ksh\\s?([\\d,]+\\.?\\d*)",
                     Pattern.CASE_INSENSITIVE);
             Matcher balanceMatcher = balancePattern.matcher(message);
             if (balanceMatcher.find()) {
@@ -283,13 +259,14 @@ public class SMSProcessingService extends Service {
                 Log.d(TAG, "Found balance: " + transaction.balance);
             }
 
-            // Only return if we have the essential fields
+            // Only return if we have the essential fields for a received transaction
             if (transaction.mpesaCode != null && transaction.amount > 0) {
-                Log.d(TAG, "Successfully parsed transaction");
+                Log.d(TAG, "Successfully parsed 'received' transaction");
                 return transaction;
             } else {
-                Log.w(TAG, "Missing essential fields - code: " + transaction.mpesaCode + ", amount: "
-                        + transaction.amount);
+                Log.w(TAG,
+                        "Missing essential fields in 'received' message - code: " + transaction.mpesaCode + ", amount: "
+                                + transaction.amount);
             }
 
         } catch (Exception e) {
