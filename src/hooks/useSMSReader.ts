@@ -69,6 +69,7 @@ export const useSMSReader = () => {
                     transaction_date: msg.transaction_date,
                     original_text: msg.original_text,
                     sms_sender: msg.sms_sender,
+                    balance: msg.balance,
                     is_read: false,
                 });
 

@@ -126,6 +126,16 @@ export const MessageListItem = ({
               {message.mpesa_code || "N/A"}
             </Badge>
           </div>
+
+          {/* Balance */}
+          {message.balance !== null && (
+            <div className="flex items-center gap-2">
+              <span className="text-gray-500 text-[10px]">Balance:</span>
+              <span className="text-gray-700 text-xs font-semibold">
+                {formatCurrency(message.balance)}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Right Section */}

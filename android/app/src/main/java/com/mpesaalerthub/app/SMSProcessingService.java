@@ -273,6 +273,16 @@ public class SMSProcessingService extends Service {
                 transaction.transactionType = "other";
             }
 
+            // Extract balance
+            Pattern balancePattern = Pattern.compile("New M-PESA balance is Ksh\\s?([\\d,]+\\.?\\d*)",
+                    Pattern.CASE_INSENSITIVE);
+            Matcher balanceMatcher = balancePattern.matcher(message);
+            if (balanceMatcher.find()) {
+                String balanceStr = balanceMatcher.group(1).replace(",", "");
+                transaction.balance = Double.parseDouble(balanceStr);
+                Log.d(TAG, "Found balance: " + transaction.balance);
+            }
+
             // Only return if we have the essential fields
             if (transaction.mpesaCode != null && transaction.amount > 0) {
                 Log.d(TAG, "Successfully parsed transaction");
@@ -345,6 +355,9 @@ public class SMSProcessingService extends Service {
             json.put("original_text", transaction.originalText);
             json.put("sms_sender", transaction.smsSender);
             json.put("is_read", false);
+            if (transaction.balance > 0) {
+                json.put("balance", transaction.balance);
+            }
 
             String jsonString = json.toString();
             Log.d(TAG, "Sending JSON: " + jsonString);
@@ -539,6 +552,7 @@ public class SMSProcessingService extends Service {
             json.put("transaction_date", transaction.transactionDate);
             json.put("original_text", transaction.originalText);
             json.put("sms_sender", transaction.smsSender);
+            json.put("balance", transaction.balance);
             json.put("queued_at", new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).format(new Date()));
 
             queueArray.put(json);
@@ -658,5 +672,6 @@ public class SMSProcessingService extends Service {
         String originalText;
         String smsSender;
         String transactionType;
+        double balance;
     }
 }
