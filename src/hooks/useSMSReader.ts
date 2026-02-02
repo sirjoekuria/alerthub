@@ -144,11 +144,20 @@ export const useSMSReader = () => {
         const handleMessagesSynced = () => {
             console.log('Messages synced event received');
         };
+
+        // Listen for direct native SMS events
+        const handleNativeSms = (event: any) => {
+            console.log('Native SMS event received:', event.detail?.code);
+            syncOfflineMessages();
+        };
+
         window.addEventListener('messages-synced', handleMessagesSynced);
+        window.addEventListener('native-sms-received', handleNativeSms as EventListener);
 
         return () => {
             window.removeEventListener('online', syncOfflineMessages);
             window.removeEventListener('messages-synced', handleMessagesSynced);
+            window.removeEventListener('native-sms-received', handleNativeSms as EventListener);
             if (syncIntervalRef.current) {
                 clearInterval(syncIntervalRef.current);
             }

@@ -144,12 +144,16 @@ public class SMSProcessingService extends Service {
                         if (saved) {
                             markAsProcessed(transaction.mpesaCode);
                             showSuccessNotification(transaction);
+                            // Notify foreground webview if active
+                            MainActivity.notifySmsReceived(transaction.mpesaCode);
                         } else {
                             // Queue for later sync if save failed
                             queueForLaterSync(transaction);
                             showNotification("Transaction queued",
                                     "KES " + transaction.amount + " - Awaiting retry (check connection)");
                             Log.e(TAG, "Sync failed for " + transaction.mpesaCode + ". Message queued.");
+                            // Notify foreground webview anyway, maybe it can sync better
+                            MainActivity.notifySmsReceived(transaction.mpesaCode);
                         }
                     }
                 } else {

@@ -26,20 +26,26 @@ public class MainActivity extends BridgeActivity {
     private static final String TAG = "MainActivity";
     private static final int PERMISSION_REQUEST_CODE = 1001;
     private static final String PREFS_NAME = "MpesaAlertHubPrefs";
+    private static MainActivity instance;
+
+    public static MainActivity getInstance() {
+        return instance;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        
+        instance = this;
+
         // Request necessary permissions
         requestRequiredPermissions();
-        
+
         // Request battery optimization exemption
         requestBatteryOptimizationExemption();
-        
+
         // Start the persistent background service
         startPersistentService();
-        
+
         // Add JavaScript interface for the web app to communicate with native code
         setupJavascriptInterface();
     }
@@ -48,39 +54,39 @@ public class MainActivity extends BridgeActivity {
         List<String> permissionsNeeded = new ArrayList<>();
 
         // SMS permissions
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_SMS) 
-                != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.READ_SMS) != PackageManager.PERMISSION_GRANTED) {
             permissionsNeeded.add(Manifest.permission.READ_SMS);
         }
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS) 
-                != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.RECEIVE_SMS) != PackageManager.PERMISSION_GRANTED) {
             permissionsNeeded.add(Manifest.permission.RECEIVE_SMS);
         }
 
         // Notification permission for Android 13+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) 
-                    != PackageManager.PERMISSION_GRANTED) {
+            if (ContextCompat.checkSelfPermission(this,
+                    Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 permissionsNeeded.add(Manifest.permission.POST_NOTIFICATIONS);
             }
         }
 
         if (!permissionsNeeded.isEmpty()) {
-            ActivityCompat.requestPermissions(this, 
-                permissionsNeeded.toArray(new String[0]), 
-                PERMISSION_REQUEST_CODE);
+            ActivityCompat.requestPermissions(this,
+                    permissionsNeeded.toArray(new String[0]),
+                    PERMISSION_REQUEST_CODE);
         } else {
             Log.d(TAG, "All required permissions already granted");
             // Start service after permissions are confirmed
             startPersistentService();
         }
     }
-    
+
     private void requestBatteryOptimizationExemption() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
             String packageName = getPackageName();
-            
+
             if (pm != null && !pm.isIgnoringBatteryOptimizations(packageName)) {
                 try {
                     Intent intent = new Intent();
@@ -96,7 +102,7 @@ public class MainActivity extends BridgeActivity {
             }
         }
     }
-    
+
     private void startPersistentService() {
         try {
             Intent serviceIntent = new Intent(this, PersistentService.class);
@@ -112,10 +118,10 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, 
-                                           @NonNull int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+            @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        
+
         if (requestCode == PERMISSION_REQUEST_CODE) {
             boolean allGranted = true;
             for (int i = 0; i < permissions.length; i++) {
@@ -126,11 +132,26 @@ public class MainActivity extends BridgeActivity {
                     allGranted = false;
                 }
             }
-            
+
             // Start persistent service after permissions are handled
             if (allGranted) {
                 startPersistentService();
             }
+        }
+    }
+
+    /**
+     * Notify the webview that a new SMS has been received.
+     * This can be called from background services.
+     */
+    public static void notifySmsReceived(String mpesaCode) {
+        if (instance != null && instance.getBridge() != null) {
+            instance.runOnUiThread(() -> {
+                String js = "window.dispatchEvent(new CustomEvent('native-sms-received', { detail: { code: '"
+                        + mpesaCode + "' } }));";
+                instance.getBridge().getWebView().evaluateJavascript(js, null);
+                Log.d(TAG, "Notified webview of SMS: " + mpesaCode);
+            });
         }
     }
 
@@ -147,10 +168,10 @@ public class MainActivity extends BridgeActivity {
      * JavaScript interface to allow the web app to configure the background service
      */
     public class BackgroundServiceInterface {
-        
+
         @JavascriptInterface
-        public void setSupabaseCredentials(String supabaseUrl, String supabaseKey, 
-                                           String userId, String accessToken) {
+        public void setSupabaseCredentials(String supabaseUrl, String supabaseKey,
+                String userId, String accessToken) {
             SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
             SharedPreferences.Editor editor = prefs.edit();
             editor.putString("supabase_url", supabaseUrl);
@@ -183,10 +204,10 @@ public class MainActivity extends BridgeActivity {
 
         @JavascriptInterface
         public boolean hasRequiredPermissions() {
-            return ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_SMS) 
-                    == PackageManager.PERMISSION_GRANTED &&
-                   ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.RECEIVE_SMS) 
-                    == PackageManager.PERMISSION_GRANTED;
+            return ContextCompat.checkSelfPermission(MainActivity.this,
+                    Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED &&
+                    ContextCompat.checkSelfPermission(MainActivity.this,
+                            Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED;
         }
     }
 }
