@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, TrendingUp, Calendar, DollarSign } from "lucide-react";
 import { formatInTimeZone } from "date-fns-tz";
 import { haptics } from "@/utils/haptics";
+import { FinancialReportSkeleton } from "@/components/skeletons/FinancialReportSkeleton";
+import { Pagination } from "@/components/Pagination";
 
 interface DailyStats {
   date: string;
@@ -14,11 +16,14 @@ interface DailyStats {
   total_amount: number;
 }
 
+const ITEMS_PER_PAGE = 10;
+
 const FinancialReport = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState<DailyStats[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -37,8 +42,7 @@ const FinancialReport = () => {
         .from("message_stats")
         .select("*")
         .eq("user_id", user?.id)
-        .order("date", { ascending: false })
-        .limit(30);
+        .order("date", { ascending: false });
 
       if (error) throw error;
 
@@ -51,15 +55,14 @@ const FinancialReport = () => {
   };
 
   if (authLoading || loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
+    return <FinancialReportSkeleton />;
   }
+
+  const totalPages = Math.ceil(stats.length / ITEMS_PER_PAGE);
+  const paginatedStats = stats.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
   const totalMessages = stats.reduce((sum, s) => sum + s.total_messages, 0);
   const totalAmount = stats.reduce((sum, s) => sum + Number(s.total_amount), 0);
@@ -129,7 +132,7 @@ const FinancialReport = () => {
                 <p className="text-center text-muted-foreground py-8">No transaction data yet</p>
               ) : (
                 <div className="space-y-2">
-                  {stats.map((stat) => (
+                  {paginatedStats.map((stat) => (
                     <div
                       key={stat.date}
                       className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
@@ -155,6 +158,16 @@ const FinancialReport = () => {
                 </div>
               )}
             </div>
+
+            {stats.length > 0 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                itemsPerPage={ITEMS_PER_PAGE}
+                totalItems={stats.length}
+              />
+            )}
           </CardContent>
         </Card>
       </div>

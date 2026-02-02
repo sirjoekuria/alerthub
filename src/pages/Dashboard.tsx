@@ -7,18 +7,19 @@ import { LogOut, Inbox, Menu, User, FileText, TrendingUp, Receipt } from "lucide
 import { useTheme } from "@/components/theme-provider";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ManualPaymentDialog } from "@/components/ManualPaymentDialog";
 import { haptics } from "@/utils/haptics";
+import { StatsSkeleton, MessageListSkeleton, SidebarSkeleton } from "@/components/DashboardSkeleton";
 
 const Dashboard = () => {
   const { user, signOut, loading: authLoading } = useAuth();
   const { setTheme } = useTheme();
   const { messages, loading: messagesLoading, unreadCount, markAsRead, markAllAsRead, deleteMessages, deleteAllMessages, refetch: messagesRefetch } = useMessages(user?.id);
-  const { stats } = useStats(user?.id);
+  const { stats, loading: statsLoading } = useStats(user?.id);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -41,41 +42,45 @@ const Dashboard = () => {
   const SidebarContent = () => (
     <div className="space-y-6">
       {/* Today's Activity Card */}
-      <Card className="border-none shadow-sm bg-white overflow-hidden">
-        <div className="p-4 bg-white border-b border-gray-100">
-          <h3 className="font-bold text-base flex items-center gap-2 text-gray-900">
-            Today's Activity
-          </h3>
-        </div>
-        <CardContent className="p-4 space-y-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-xs text-gray-500 font-medium mb-1">Messages</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.total_messages}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-gray-500 font-medium mb-1">Total Amount</p>
-              <p className="text-2xl font-bold text-green-600">KES {stats.total_amount.toLocaleString()}</p>
-            </div>
+      {statsLoading ? (
+        <StatsSkeleton />
+      ) : (
+        <Card className="border-none shadow-sm bg-card overflow-hidden">
+          <div className="p-4 bg-card border-b border-border">
+            <h3 className="font-bold text-base flex items-center gap-2 text-foreground">
+              Today's Activity
+            </h3>
           </div>
+          <CardContent className="p-4 space-y-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-xs text-muted-foreground font-medium mb-1">Messages</p>
+                <p className="text-2xl font-bold text-foreground">{stats.total_messages}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-muted-foreground font-medium mb-1">Total Amount</p>
+                <p className="text-2xl font-bold text-primary">KES {stats.total_amount.toLocaleString()}</p>
+              </div>
+            </div>
 
-          <div className="bg-green-50 rounded-xl p-3 border border-green-100">
-            <p className="text-xs text-green-600 font-medium mb-1">Current Balance</p>
-            <p className="text-3xl font-bold text-green-700">
-              {messages.find(m => m.balance !== null && m.balance !== undefined)?.balance
-                ? `KES ${messages.find(m => m.balance !== null && m.balance !== undefined)?.balance?.toLocaleString()}`
-                : 'N/A'}
-            </p>
-            <p className="text-[10px] text-green-600/60 mt-1">
-              Based on latest SMS
-            </p>
-          </div>
+            <div className="bg-primary/10 rounded-xl p-3 border border-primary/20">
+              <p className="text-xs text-primary font-medium mb-1">Current Balance</p>
+              <p className="text-3xl font-bold text-primary">
+                {messages.find(m => m.balance !== null && m.balance !== undefined)?.balance
+                  ? `KES ${messages.find(m => m.balance !== null && m.balance !== undefined)?.balance?.toLocaleString()}`
+                  : 'N/A'}
+              </p>
+              <p className="text-[10px] text-primary/60 mt-1">
+                Based on latest SMS
+              </p>
+            </div>
 
-          <p className="text-xs text-gray-400 pt-2 border-t border-gray-100 text-center">
-            Resets monthly on 1st
-          </p>
-        </CardContent>
-      </Card>
+            <p className="text-xs text-muted-foreground pt-2 border-t border-border text-center">
+              Resets monthly on 1st
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Manual Payment Button */}
       <ManualPaymentDialog userId={user.id} />
@@ -262,12 +267,7 @@ const Dashboard = () => {
         {/* Message List */}
         <main className="flex-1 overflow-hidden">
           {messagesLoading ? (
-            <div className="h-full flex items-center justify-center">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-                <p className="mt-4 text-muted-foreground">Loading messages...</p>
-              </div>
-            </div>
+            <MessageListSkeleton />
           ) : (
             <div className="h-full">
               <PullToRefresh onRefresh={async () => { await messagesRefetch(); }}>

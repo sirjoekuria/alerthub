@@ -13,29 +13,47 @@ interface SMSPayload {
   userId?: string; // Optional: for authenticated requests
 }
 
-// Parse MPESA message to extract transaction details
+// Parse MPESA "received" message to extract transaction details
+// Only processes messages containing "You have received"
 function parseMPESAMessage(message: string) {
+  // MUST contain "You have received" - this is the key indicator for received payments
+  if (!/you\s+have\s+received/i.test(message)) {
+    console.log('Message does not contain "You have received" - skipping');
+    return null;
+  }
+
+  // Pattern for received messages:
+  // Example: "TJ4796EWEC Confirmed. You have received Ksh500.00 from JOHN DOE 0712345678 on 4/10/25 at 9:49 AM. New M-PESA balance is Ksh1,234.00"
   const patterns = {
-    // Transaction code: e.g., "TJ4796EWEC" - alphanumeric code in the message
+    // Transaction code: 10-character alphanumeric code before "Confirmed"
     code: /([A-Z0-9]{10})\s+Confirmed/i,
-    // Amount: e.g., "Ksh500.00", "Ksh1,500.00"
-    amount: /Ksh([\d,]+\.?\d*)/,
-    // Recipient/Sender: "from [Name]" pattern in M-Pesa messages
-    recipient: /from\s+([A-Za-z\s]+?)\s+\d{10}/i,
+    // Amount received: "You have received Ksh500.00" or "Ksh1,500.00"
+    amount: /You\s+have\s+received\s+Ksh([\d,]+\.?\d*)/i,
+    // Sender name and phone: "from JOHN DOE 0712345678"
+    sender: /from\s+([A-Z\s]+?)\s+(\d{10})/i,
     // Date and time: "on 4/10/25 at 9:49 AM"
-    date: /on\s+(\d{1,2}\/\d{1,2}\/\d{2,4})\s+at\s+(\d{1,2}:\d{2}\s*(?:AM|PM))/i,
+    datetime: /on\s+(\d{1,2}\/\d{1,2}\/\d{2,4})\s+at\s+(\d{1,2}:\d{2}\s*(?:AM|PM))/i,
+    // Balance (optional): "New M-PESA balance is Ksh1,234.00"
+    balance: /(?:New\s+)?M-PESA\s+balance\s+is\s+Ksh([\d,]+\.?\d*)/i,
   };
 
   const codeMatch = message.match(patterns.code);
   const amountMatch = message.match(patterns.amount);
-  const recipientMatch = message.match(patterns.recipient);
-  const dateMatch = message.match(patterns.date);
+  const senderMatch = message.match(patterns.sender);
+  const datetimeMatch = message.match(patterns.datetime);
+  const balanceMatch = message.match(patterns.balance);
+
+  // Must have at least the code and amount for a valid transaction
+  if (!codeMatch || !amountMatch) {
+    console.log('Could not extract MPESA code or amount from message');
+    return null;
+  }
 
   let transactionDate = null;
-  if (dateMatch) {
+  if (datetimeMatch) {
     try {
-      const dateStr = dateMatch[1];
-      const timeStr = dateMatch[2].toUpperCase();
+      const dateStr = datetimeMatch[1];
+      const timeStr = datetimeMatch[2].toUpperCase();
       // Parse date in format DD/MM/YY
       const [day, month, year] = dateStr.split('/');
       const fullYear = year.length === 2 ? `20${year}` : year;
@@ -69,12 +87,17 @@ function parseMPESAMessage(message: string) {
     }
   }
 
-  return {
-    mpesaCode: codeMatch ? codeMatch[1].trim() : null,
-    amount: amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : null,
-    senderName: recipientMatch ? recipientMatch[1].trim() : null,
+  const result = {
+    mpesaCode: codeMatch[1].trim(),
+    amount: parseFloat(amountMatch[1].replace(/,/g, '')),
+    senderName: senderMatch ? senderMatch[1].trim() : null,
+    senderPhone: senderMatch ? senderMatch[2] : null,
     transactionDate: transactionDate,
+    balance: balanceMatch ? parseFloat(balanceMatch[1].replace(/,/g, '')) : null,
   };
+
+  console.log('Parsed MPESA received message:', result);
+  return result;
 }
 
 serve(async (req) => {
@@ -100,8 +123,20 @@ serve(async (req) => {
       );
     }
 
-    // Parse the message
+    // Parse the message - only processes "You have received" messages
     const parsed = parseMPESAMessage(payload.message);
+    
+    // If not a valid received payment message, reject it
+    if (!parsed) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: 'Not a valid M-PESA received payment message. Must contain "You have received".' 
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     console.log('Parsed message:', parsed);
 
     // Get user ID from auth header or payload
@@ -183,6 +218,7 @@ serve(async (req) => {
         sms_sender: payload.sender,
         is_read: false,
         received_timestamp: receivedAt,
+        balance: parsed.balance,
       })
       .select()
       .single();

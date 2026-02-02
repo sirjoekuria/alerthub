@@ -10,6 +10,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { ArrowLeft, ArrowUpRight, Upload } from "lucide-react";
 import { haptics } from "@/utils/haptics";
+import { ProfileSkeleton } from "@/components/skeletons/ProfileSkeleton";
+import { PasswordStrengthMeter } from "@/components/PasswordStrengthMeter";
 
 const Profile = () => {
   const { user, loading: authLoading } = useAuth();
@@ -151,14 +153,7 @@ const Profile = () => {
   };
 
   if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
+    return <ProfileSkeleton />;
   }
 
   const initials = fullName
@@ -269,7 +264,7 @@ const Profile = () => {
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 text-gray-900">
           <h3 className="font-bold text-lg mb-4">Change Password</h3>
           <form onSubmit={handleUpdatePassword} className="space-y-4">
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Input
                 type="password"
                 className="h-12 rounded-xl bg-gray-50 border-gray-200 focus:bg-white transition-all text-gray-900 placeholder:text-gray-500"
@@ -278,6 +273,7 @@ const Profile = () => {
                 placeholder="New Password"
                 minLength={6}
               />
+              <PasswordStrengthMeter password={newPassword} />
             </div>
             <div className="space-y-2">
               <Input

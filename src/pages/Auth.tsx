@@ -7,7 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Smartphone } from "lucide-react";
+import { Smartphone, AlertCircle } from "lucide-react";
+import { loginSchema, signupSchema, resetPasswordSchema, type LoginInput, type SignupInput, type ResetPasswordInput } from "@/lib/validations";
+import { PasswordStrengthMeter } from "@/components/PasswordStrengthMeter";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -15,9 +17,9 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    // Check if already logged in
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         navigate("/dashboard");
@@ -33,18 +35,37 @@ const Auth = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  const validateForm = <T extends Record<string, unknown>>(
+    schema: { safeParse: (data: T) => { success: boolean; error?: { errors: Array<{ path: (string | number)[]; message: string }> } } },
+    data: T
+  ): boolean => {
+    const result = schema.safeParse(data);
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      result.error?.errors.forEach((err) => {
+        const field = err.path[0] as string;
+        fieldErrors[field] = err.message;
+      });
+      setErrors(fieldErrors);
+      return false;
+    }
+    setErrors({});
+    return true;
+  };
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    
+    const formData: SignupInput = { fullName, email, password };
+    if (!validateForm(signupSchema, formData)) return;
 
+    setLoading(true);
     try {
       const { error } = await supabase.auth.signUp({
-        email,
+        email: email.trim(),
         password,
         options: {
-          data: {
-            full_name: fullName,
-          },
+          data: { full_name: fullName.trim() },
           emailRedirectTo: `${window.location.origin}/dashboard`,
         },
       });
@@ -64,16 +85,18 @@ const Auth = () => {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    
+    const formData: LoginInput = { email, password };
+    if (!validateForm(loginSchema, formData)) return;
 
+    setLoading(true);
     try {
       const { error } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim(),
         password,
       });
 
       if (error) throw error;
-
       toast.success("Logged in successfully!");
     } catch (error) {
       toast.error((error as Error).message || "Failed to log in");
@@ -84,10 +107,13 @@ const Auth = () => {
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    
+    const formData: ResetPasswordInput = { email };
+    if (!validateForm(resetPasswordSchema, formData)) return;
 
+    setLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
         redirectTo: `${window.location.origin}/auth`,
       });
 
@@ -102,6 +128,18 @@ const Auth = () => {
     }
   };
 
+  const clearErrors = () => setErrors({});
+
+  const ErrorMessage = ({ field }: { field: string }) => {
+    if (!errors[field]) return null;
+    return (
+      <p className="text-sm text-destructive mt-1 flex items-center gap-1">
+        <AlertCircle className="w-3 h-3" />
+        {errors[field]}
+      </p>
+    );
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/10 p-4">
       <Card className="w-full max-w-md shadow-xl">
@@ -113,7 +151,7 @@ const Auth = () => {
           <CardDescription>Track and manage your MPESA transactions</CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="login" className="w-full">
+          <Tabs defaultValue="login" className="w-full" onValueChange={clearErrors}>
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="login">Login</TabsTrigger>
               <TabsTrigger value="signup">Sign Up</TabsTrigger>
@@ -130,8 +168,9 @@ const Auth = () => {
                     placeholder="you@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    required
+                    className={errors.email ? "border-destructive" : ""}
                   />
+                  <ErrorMessage field="email" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="login-password">Password</Label>
@@ -141,8 +180,9 @@ const Auth = () => {
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    required
+                    className={errors.password ? "border-destructive" : ""}
                   />
+                  <ErrorMessage field="password" />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? "Logging in..." : "Log In"}
@@ -160,8 +200,9 @@ const Auth = () => {
                     placeholder="John Doe"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    required
+                    className={errors.fullName ? "border-destructive" : ""}
                   />
+                  <ErrorMessage field="fullName" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-email">Email</Label>
@@ -171,10 +212,11 @@ const Auth = () => {
                     placeholder="you@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    required
+                    className={errors.email ? "border-destructive" : ""}
                   />
+                  <ErrorMessage field="email" />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <Label htmlFor="signup-password">Password</Label>
                   <Input
                     id="signup-password"
@@ -182,9 +224,10 @@ const Auth = () => {
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    required
-                    minLength={6}
+                    className={errors.password ? "border-destructive" : ""}
                   />
+                  <PasswordStrengthMeter password={password} />
+                  <ErrorMessage field="password" />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? "Creating account..." : "Sign Up"}
@@ -202,8 +245,9 @@ const Auth = () => {
                     placeholder="you@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    required
+                    className={errors.email ? "border-destructive" : ""}
                   />
+                  <ErrorMessage field="email" />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? "Sending..." : "Send Reset Link"}
