@@ -38,10 +38,15 @@ const FinancialReport = () => {
 
   const loadStats = async () => {
     try {
+      // Get the first day of the current month
+      const today = new Date();
+      const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+
       const { data, error } = await supabase
         .from("message_stats")
         .select("*")
         .eq("user_id", user?.id)
+        .gte("date", firstDayOfMonth)
         .order("date", { ascending: false });
 
       if (error) throw error;
@@ -81,7 +86,7 @@ const FinancialReport = () => {
 
         <div className="space-y-2">
           <h1 className="text-3xl font-bold">Financial Report</h1>
-          <p className="text-muted-foreground">Overview of your MPESA transactions</p>
+          <p className="text-muted-foreground">Monthly overview of your MPESA transactions</p>
         </div>
 
         {/* Summary Cards */}
@@ -93,7 +98,7 @@ const FinancialReport = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{totalMessages}</div>
-              <p className="text-xs text-muted-foreground">All time transactions</p>
+              <p className="text-xs text-muted-foreground">Transactions this month</p>
             </CardContent>
           </Card>
 
@@ -104,7 +109,7 @@ const FinancialReport = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">KES {totalAmount.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">All time total</p>
+              <p className="text-xs text-muted-foreground">Monthly total</p>
             </CardContent>
           </Card>
 
@@ -115,7 +120,7 @@ const FinancialReport = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">KES {averageDaily.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
-              <p className="text-xs text-muted-foreground">Last 30 days</p>
+              <p className="text-xs text-muted-foreground">Average per transaction day</p>
             </CardContent>
           </Card>
         </div>
