@@ -63,17 +63,7 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <div className="bg-primary/10 rounded-xl p-3 border border-primary/20">
-              <p className="text-xs text-primary font-medium mb-1">Current Balance</p>
-              <p className="text-3xl font-bold text-primary">
-                {messages.find(m => m.balance !== null && m.balance !== undefined)?.balance
-                  ? `KES ${messages.find(m => m.balance !== null && m.balance !== undefined)?.balance?.toLocaleString()}`
-                  : 'N/A'}
-              </p>
-              <p className="text-[10px] text-primary/60 mt-1">
-                Based on latest SMS
-              </p>
-            </div>
+
 
             <p className="text-xs text-muted-foreground pt-2 border-t border-border text-center">
               Resets monthly on 1st
