@@ -67,6 +67,7 @@ export const useSMSReader = () => {
                     amount: msg.amount,
                     sender_name: msg.sender_name,
                     transaction_date: msg.transaction_date,
+                    received_timestamp: msg.received_timestamp || new Date().toISOString(),
                     original_text: msg.original_text,
                     sms_sender: msg.sms_sender,
                     is_read: false,

@@ -209,11 +209,20 @@ public class SMSProcessingService extends Service {
             transaction.transactionType = "received";
 
             // Extract M-Pesa code (e.g., "ABC123XYZ Confirmed")
+            // Refined: Optional period after Confirmed
             Pattern codePattern = Pattern.compile("([A-Z0-9]{10})\\s+Confirmed", Pattern.CASE_INSENSITIVE);
             Matcher codeMatcher = codePattern.matcher(message);
             if (codeMatcher.find()) {
                 transaction.mpesaCode = codeMatcher.group(1).toUpperCase();
                 Log.d(TAG, "Found M-Pesa code: " + transaction.mpesaCode);
+            } else {
+                // Secondary check for code followed by space or end of string
+                Pattern altCodePattern = Pattern.compile("([A-Z0-9]{10})", Pattern.CASE_INSENSITIVE);
+                Matcher altMatcher = altCodePattern.matcher(message);
+                if (altMatcher.find()) {
+                    transaction.mpesaCode = altMatcher.group(1).toUpperCase();
+                    Log.d(TAG, "Found M-Pesa code (alt): " + transaction.mpesaCode);
+                }
             }
 
             // Extract amount received (e.g., "received Ksh1,234.56")
@@ -319,6 +328,8 @@ public class SMSProcessingService extends Service {
             json.put("amount", transaction.amount);
             json.put("sender_name", transaction.senderName);
             json.put("transaction_date", transaction.transactionDate);
+            json.put("received_timestamp",
+                    new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).format(new Date()));
             json.put("original_text", transaction.originalText);
             json.put("sms_sender", transaction.smsSender);
             json.put("is_read", false);
@@ -514,6 +525,8 @@ public class SMSProcessingService extends Service {
             json.put("amount", transaction.amount);
             json.put("sender_name", transaction.senderName);
             json.put("transaction_date", transaction.transactionDate);
+            json.put("received_timestamp",
+                    new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).format(new Date()));
             json.put("original_text", transaction.originalText);
             json.put("sms_sender", transaction.smsSender);
             json.put("queued_at", new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).format(new Date()));

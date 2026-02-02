@@ -15,11 +15,15 @@ export const useStats = (userId: string | undefined) => {
 
     const fetchStats = async () => {
       try {
+        const startOfMonth = new Date();
+        startOfMonth.setDate(1);
+        const dateStr = startOfMonth.toISOString().split('T')[0];
+
         const { data, error } = await supabase
           .from('message_stats')
           .select('total_messages, total_amount')
           .eq('user_id', userId)
-          .eq('date', new Date().toISOString().split('T')[0])
+          .eq('date', dateStr)
           .maybeSingle();
 
         if (error) throw error;
@@ -60,7 +64,9 @@ export const useStats = (userId: string | undefined) => {
         (payload) => {
           if (payload.new && typeof payload.new === 'object') {
             const newData = payload.new as Record<string, unknown>;
-            const today = new Date().toISOString().split('T')[0];
+            const startOfMonth = new Date();
+            startOfMonth.setDate(1);
+            const today = startOfMonth.toISOString().split('T')[0];
             if (newData.date === today) {
               setStats({
                 total_messages: Number(newData.total_messages) || 0,
