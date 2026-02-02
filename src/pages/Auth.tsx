@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Smartphone, AlertCircle } from "lucide-react";
 import { loginSchema, signupSchema, resetPasswordSchema, type LoginInput, type SignupInput, type ResetPasswordInput } from "@/lib/validations";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { PasswordStrengthMeter } from "@/components/PasswordStrengthMeter";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -216,7 +216,7 @@ const Auth = () => {
                   />
                   <ErrorMessage field="email" />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <Label htmlFor="signup-password">Password</Label>
                   <Input
                     id="signup-password"
@@ -226,6 +226,7 @@ const Auth = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     className={errors.password ? "border-destructive" : ""}
                   />
+                  <PasswordStrengthMeter password={password} />
                   <ErrorMessage field="password" />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
