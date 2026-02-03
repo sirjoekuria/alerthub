@@ -298,6 +298,104 @@ public class SMSProcessingService extends Service {
             return false;
         }
 
+        // Try edge function first (more reliable, uses service role key)
+        boolean edgeFunctionSuccess = saveViaEdgeFunction(supabaseUrl, supabaseKey, accessToken, userId, transaction);
+        if (edgeFunctionSuccess) {
+            return true;
+        }
+
+        Log.d(TAG, "Edge function failed, trying direct REST API...");
+
+        // Fall back to direct REST API if edge function fails
+        return saveViaRestApi(supabaseUrl, supabaseKey, accessToken, userId, transaction);
+    }
+
+    private boolean saveViaEdgeFunction(String supabaseUrl, String supabaseKey, String accessToken,
+            String userId, MpesaTransaction transaction) {
+        HttpURLConnection connection = null;
+        try {
+            Log.d(TAG, "Saving via edge function...");
+
+            // Construct edge function URL
+            String edgeFunctionUrl = supabaseUrl.replace(".supabase.co", ".supabase.co/functions/v1/sms-ingest");
+            
+            URL url = new URL(edgeFunctionUrl);
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("POST");
+            connection.setRequestProperty("Content-Type", "application/json");
+            connection.setRequestProperty("apikey", supabaseKey);
+            // Use access token if available, otherwise use anon key
+            connection.setRequestProperty("Authorization", 
+                    "Bearer " + (accessToken != null && !accessToken.isEmpty() ? accessToken : supabaseKey));
+            connection.setConnectTimeout(30000);
+            connection.setReadTimeout(30000);
+            connection.setDoOutput(true);
+
+            JSONObject json = new JSONObject();
+            json.put("sender", transaction.smsSender);
+            json.put("message", transaction.originalText);
+            json.put("timestamp", new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).format(new Date()));
+            json.put("userId", userId);
+
+            String jsonString = json.toString();
+            Log.d(TAG, "Sending to edge function: " + jsonString);
+
+            try (OutputStream os = connection.getOutputStream()) {
+                byte[] input = jsonString.getBytes(StandardCharsets.UTF_8);
+                os.write(input, 0, input.length);
+            }
+
+            int responseCode = connection.getResponseCode();
+            Log.d(TAG, "Edge function response code: " + responseCode);
+
+            if (responseCode == 200 || responseCode == 201) {
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+                    StringBuilder response = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        response.append(line);
+                    }
+                    String responseStr = response.toString();
+                    Log.d(TAG, "Edge function response: " + responseStr);
+
+                    // Check if response indicates success
+                    if (responseStr.contains("\"success\":true")) {
+                        Log.d(TAG, "Successfully saved via edge function");
+                        return true;
+                    } else if (responseStr.contains("Not a valid M-PESA")) {
+                        Log.d(TAG, "Message rejected by edge function - not a valid M-PESA message");
+                        return true; // Consider it handled
+                    }
+                }
+            } else {
+                // Read error response
+                try (InputStream errorStream = connection.getErrorStream()) {
+                    if (errorStream != null) {
+                        try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(errorStream))) {
+                            StringBuilder errorResponse = new StringBuilder();
+                            String errorLine;
+                            while ((errorLine = errorReader.readLine()) != null) {
+                                errorResponse.append(errorLine);
+                            }
+                            Log.e(TAG, "Edge function error: " + responseCode + " - " + errorResponse.toString());
+                        }
+                    }
+                }
+            }
+
+            return false;
+        } catch (Exception e) {
+            Log.e(TAG, "Error calling edge function", e);
+            return false;
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
+        }
+    }
+
+    private boolean saveViaRestApi(String supabaseUrl, String supabaseKey, String accessToken,
+            String userId, MpesaTransaction transaction) {
         HttpURLConnection connection = null;
         try {
             Log.d(TAG, "Checking if message exists: " + transaction.mpesaCode);
@@ -308,7 +406,7 @@ public class SMSProcessingService extends Service {
                 return true; // Consider this a success since the message is already saved
             }
 
-            Log.d(TAG, "Saving to Supabase...");
+            Log.d(TAG, "Saving to Supabase REST API...");
 
             URL url = new URL(supabaseUrl + "/rest/v1/messages");
             connection = (HttpURLConnection) url.openConnection();
@@ -335,7 +433,7 @@ public class SMSProcessingService extends Service {
             json.put("is_read", false);
 
             String jsonString = json.toString();
-            Log.d(TAG, "Sending JSON: " + jsonString);
+            Log.d(TAG, "Sending JSON to REST API: " + jsonString);
 
             try (OutputStream os = connection.getOutputStream()) {
                 byte[] input = jsonString.getBytes(StandardCharsets.UTF_8);
@@ -343,10 +441,10 @@ public class SMSProcessingService extends Service {
             }
 
             int responseCode = connection.getResponseCode();
-            Log.d(TAG, "Supabase POST Response code: " + responseCode);
+            Log.d(TAG, "Supabase REST API Response code: " + responseCode);
 
             if (responseCode == 201 || responseCode == 200) {
-                Log.d(TAG, "Successfully saved to Supabase");
+                Log.d(TAG, "Successfully saved to Supabase REST API");
 
                 // Read response to get message ID for receipt creation
                 try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
