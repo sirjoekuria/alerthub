@@ -139,11 +139,11 @@ serve(async (req) => {
     
     console.log('Parsed message:', parsed);
 
-    // Get user ID from auth header or payload
+    // Get user ID from payload first (for native Android calls), then try auth header
     let userId = payload.userId;
     
     if (!userId) {
-      // Try to get from auth header
+      // Try to get from auth header (for web calls)
       const authHeader = req.headers.get('authorization');
       if (authHeader) {
         const { data: { user }, error } = await supabaseClient.auth.getUser(authHeader.replace('Bearer ', ''));
@@ -153,12 +153,17 @@ serve(async (req) => {
       }
     }
 
+    // If still no userId, check if this is coming from a trusted source with service role
+    // For Android native, we trust the userId in payload since it's sent from our app
     if (!userId) {
+      console.log('No userId found in payload or auth header');
       return new Response(
         JSON.stringify({ error: 'User authentication required. Please provide userId or valid auth token.' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log('Using userId:', userId);
 
     // Normalize received timestamp with fallback to now()
     // Format: "04/10, 10:28 am" - East Africa Time (UTC+3)
