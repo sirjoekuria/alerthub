@@ -29,8 +29,9 @@ function parseMPESAMessage(message: string) {
     code: /([A-Z0-9]{10})\s+Confirmed/i,
     // Amount received: "You have received Ksh500.00" or "Ksh1,500.00"
     amount: /You\s+have\s+received\s+Ksh([\d,]+\.?\d*)/i,
-    // Sender name and phone: "from JOHN DOE 0712345678"
-    sender: /from\s+([A-Z\s]+?)\s+(\d{10})/i,
+    // Sender name and phone: "from JOHN DOE 0712345678" 
+    // Name can have mixed case, apostrophes, multiple spaces, hyphens
+    sender: /from\s+(.+?)\s+(\d{10})\s+on/i,
     // Date and time: "on 4/10/25 at 9:49 AM"
     datetime: /on\s+(\d{1,2}\/\d{1,2}\/\d{2,4})\s+at\s+(\d{1,2}:\d{2}\s*(?:AM|PM))/i,
     // Balance (optional): "New M-PESA balance is Ksh1,234.00"
