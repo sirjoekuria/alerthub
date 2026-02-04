@@ -15,25 +15,22 @@ export const useStats = (userId: string | undefined) => {
 
     const fetchStats = async () => {
       try {
-        const startOfMonth = new Date();
-        startOfMonth.setDate(1);
-        const dateStr = startOfMonth.toISOString().split('T')[0];
+        // Get today's date in UTC for querying daily stats
+        const today = new Date().toISOString().split('T')[0];
 
         const { data, error } = await supabase
           .from('message_stats')
           .select('total_messages, total_amount')
           .eq('user_id', userId)
-          .eq('date', dateStr)
+          .eq('date', today)
           .maybeSingle();
 
         if (error) throw error;
 
-        if (data) {
-          setStats({
-            total_messages: data.total_messages || 0,
-            total_amount: Number(data.total_amount) || 0,
-          });
-        }
+        setStats({
+          total_messages: data?.total_messages || 0,
+          total_amount: Number(data?.total_amount) || 0,
+        });
       } catch (error) {
         console.error('Error fetching stats:', error);
       } finally {
@@ -64,9 +61,7 @@ export const useStats = (userId: string | undefined) => {
         (payload) => {
           if (payload.new && typeof payload.new === 'object') {
             const newData = payload.new as Record<string, unknown>;
-            const startOfMonth = new Date();
-            startOfMonth.setDate(1);
-            const today = startOfMonth.toISOString().split('T')[0];
+            const today = new Date().toISOString().split('T')[0];
             if (newData.date === today) {
               setStats({
                 total_messages: Number(newData.total_messages) || 0,
