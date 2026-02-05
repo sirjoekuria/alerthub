@@ -17,7 +17,7 @@ import { StatsSkeleton, MessageListSkeleton, SidebarSkeleton } from "@/component
 
 const Dashboard = () => {
   const { user, signOut, loading: authLoading } = useAuth();
-  const { setTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const { messages, loading: messagesLoading, unreadCount, markAsRead, markAllAsRead, deleteMessages, deleteAllMessages, refetch: messagesRefetch } = useMessages(user?.id);
   const { stats, loading: statsLoading } = useStats(user?.id);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -141,13 +141,17 @@ const Dashboard = () => {
       {/* Theme Toggle */}
       <div className="space-y-3 pt-6 border-t">
         <p className="px-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Theme</p>
-        <div className="grid grid-cols-3 gap-2 bg-gray-100 p-1 rounded-xl">
+        <div className="grid grid-cols-3 gap-2 bg-muted p-1 rounded-xl">
           <button
             onClick={() => {
               haptics.light();
               setTheme("light");
             }}
-            className="flex items-center justify-center py-1.5 rounded-lg bg-white text-gray-900 shadow-sm text-sm font-medium transition-all"
+            className={`flex items-center justify-center py-1.5 rounded-lg text-sm font-medium transition-all ${
+              theme === "light"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+            }`}
           >
             Light
           </button>
@@ -156,7 +160,11 @@ const Dashboard = () => {
               haptics.light();
               setTheme("dark");
             }}
-            className="flex items-center justify-center py-1.5 rounded-lg text-gray-500 hover:text-gray-900 text-sm font-medium transition-all"
+            className={`flex items-center justify-center py-1.5 rounded-lg text-sm font-medium transition-all ${
+              theme === "dark"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+            }`}
           >
             Dark
           </button>
@@ -165,7 +173,11 @@ const Dashboard = () => {
               haptics.light();
               setTheme("system");
             }}
-            className="flex items-center justify-center py-1.5 rounded-lg text-gray-500 hover:text-gray-900 text-sm font-medium transition-all"
+            className={`flex items-center justify-center py-1.5 rounded-lg text-sm font-medium transition-all ${
+              theme === "system"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+            }`}
           >
             System
           </button>
