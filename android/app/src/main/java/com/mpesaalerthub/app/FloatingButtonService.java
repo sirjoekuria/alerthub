@@ -23,8 +23,8 @@ public class FloatingButtonService extends Service {
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
 
         floatingButton = new ImageView(this);
-        // Use a system icon or you can provide a custom one
-        floatingButton.setImageResource(android.R.drawable.ic_dialog_info);
+        // Use the app icon
+        floatingButton.setImageResource(R.mipmap.ic_launcher_round);
         // Background circle and padding to make it look like a button
         floatingButton.setBackgroundResource(android.R.drawable.screen_background_light_transparent);
         floatingButton.setPadding(20, 20, 20, 20);
