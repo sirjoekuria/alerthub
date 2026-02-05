@@ -164,18 +164,18 @@ const Profile = () => {
     .slice(0, 2);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-10">
+      <header className="bg-card border-b border-border sticky top-0 z-10">
         <div className="px-4 h-16 flex items-center justify-between max-w-lg mx-auto w-full">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" onClick={() => {
               haptics.light();
               navigate("/dashboard");
             }} className="-ml-2">
-              <ArrowLeft className="w-6 h-6" />
+              <ArrowLeft className="w-6 h-6 text-foreground" />
             </Button>
-            <h1 className="text-xl font-bold">My Profile</h1>
+            <h1 className="text-xl font-bold text-foreground">My Profile</h1>
           </div>
           <div className="flex items-center gap-2">
             {/* Right side placeholder - maybe app logo or user avatar small */}
@@ -184,14 +184,14 @@ const Profile = () => {
       </header>
 
       {/* Content */}
-      <div className="flex-1 p-4 max-w-lg mx-auto w-full space-y-6 pb-12 text-gray-900">
+      <div className="flex-1 p-4 max-w-lg mx-auto w-full space-y-6 pb-12">
 
         {/* Avatar Section */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col items-center gap-4">
+        <div className="bg-card rounded-2xl p-6 shadow-sm border border-border flex flex-col items-center gap-4">
           <div className="relative">
-            <Avatar className="w-28 h-28 border-4 border-gray-50 shadow-sm">
+            <Avatar className="w-28 h-28 border-4 border-background shadow-sm">
               <AvatarImage src={avatarUrl} alt={fullName} className="object-cover" />
-              <AvatarFallback className="text-3xl bg-gray-100 text-gray-500">{initials || "U"}</AvatarFallback>
+              <AvatarFallback className="text-3xl bg-muted text-muted-foreground">{initials || "U"}</AvatarFallback>
             </Avatar>
           </div>
           <div className="w-full">
@@ -215,12 +215,12 @@ const Profile = () => {
         </div>
 
         {/* Personal Information */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 text-gray-900">
-          <h3 className="font-bold text-lg mb-4">Personal Information</h3>
+        <div className="bg-card rounded-2xl p-6 shadow-sm border border-border">
+          <h3 className="font-bold text-lg mb-4 text-foreground">Personal Information</h3>
           <form onSubmit={handleUpdateProfile} className="space-y-4">
             <div className="space-y-2">
               <Input
-                className="h-12 rounded-xl bg-gray-50 border-gray-200 focus:bg-white transition-all text-gray-900 placeholder:text-gray-500"
+                className="h-12 rounded-xl bg-muted border-border focus:bg-background transition-all text-foreground placeholder:text-muted-foreground"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Enter your full name"
@@ -238,12 +238,12 @@ const Profile = () => {
         </div>
 
         {/* Email Address */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 text-gray-900">
-          <h3 className="font-bold text-lg mb-4">Email Address</h3>
+        <div className="bg-card rounded-2xl p-6 shadow-sm border border-border">
+          <h3 className="font-bold text-lg mb-4 text-foreground">Email Address</h3>
           <form onSubmit={handleUpdateEmail} className="space-y-4">
             <div className="space-y-2">
               <Input
-                className="h-12 rounded-xl bg-gray-50 border-gray-200 focus:bg-white transition-all text-gray-900 placeholder:text-gray-500"
+                className="h-12 rounded-xl bg-muted border-border focus:bg-background transition-all text-foreground placeholder:text-muted-foreground"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
@@ -261,13 +261,13 @@ const Profile = () => {
         </div>
 
         {/* Change Password */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 text-gray-900">
-          <h3 className="font-bold text-lg mb-4">Change Password</h3>
+        <div className="bg-card rounded-2xl p-6 shadow-sm border border-border">
+          <h3 className="font-bold text-lg mb-4 text-foreground">Change Password</h3>
           <form onSubmit={handleUpdatePassword} className="space-y-4">
             <div className="space-y-1">
               <Input
                 type="password"
-                className="h-12 rounded-xl bg-gray-50 border-gray-200 focus:bg-white transition-all text-gray-900 placeholder:text-gray-500"
+                className="h-12 rounded-xl bg-muted border-border focus:bg-background transition-all text-foreground placeholder:text-muted-foreground"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="New Password"
@@ -278,7 +278,7 @@ const Profile = () => {
             <div className="space-y-2">
               <Input
                 type="password"
-                className="h-12 rounded-xl bg-gray-50 border-gray-200 focus:bg-white transition-all text-gray-900 placeholder:text-gray-500"
+                className="h-12 rounded-xl bg-muted border-border focus:bg-background transition-all text-foreground placeholder:text-muted-foreground"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirm Password"
