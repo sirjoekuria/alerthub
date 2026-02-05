@@ -43,11 +43,50 @@ public class MainActivity extends BridgeActivity {
         // Request battery optimization exemption
         requestBatteryOptimizationExemption();
 
+        // Check for overlay permission
+        checkOverlayPermission();
+
         // Start the persistent background service
         startPersistentService();
 
         // Add JavaScript interface for the web app to communicate with native code
         setupJavascriptInterface();
+    }
+
+    private void checkOverlayPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (!Settings.canDrawOverlays(this)) {
+                Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        Uri.parse("package:" + getPackageName()));
+                startActivity(intent);
+            }
+        }
+    }
+
+    private void startFloatingButtonService() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Settings.canDrawOverlays(this)) {
+            Intent serviceIntent = new Intent(this, FloatingButtonService.class);
+            startService(serviceIntent);
+        }
+    }
+
+    private void stopFloatingButtonService() {
+        Intent serviceIntent = new Intent(this, FloatingButtonService.class);
+        stopService(serviceIntent);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // Start floating button when app is minimized
+        startFloatingButtonService();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Stop floating button when app is in foreground
+        stopFloatingButtonService();
     }
 
     private void requestRequiredPermissions() {

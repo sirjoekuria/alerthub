@@ -15,6 +15,8 @@ import { ManualPaymentDialog } from "@/components/ManualPaymentDialog";
 import { haptics } from "@/utils/haptics";
 import { StatsSkeleton, MessageListSkeleton, SidebarSkeleton } from "@/components/DashboardSkeleton";
 
+import { DigitalClock } from "@/components/DigitalClock";
+
 const Dashboard = () => {
   const { user, signOut, loading: authLoading } = useAuth();
   const { theme, setTheme } = useTheme();
@@ -247,13 +249,19 @@ const Dashboard = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="hidden sm:flex bg-green-100 text-green-700 px-3 py-1.5 rounded-full items-center gap-2 text-sm font-medium">
-              <div className="w-2 h-2 rounded-full bg-green-600 animate-pulse" />
-              Live Monitoring
+            <div className="hidden sm:flex items-center gap-3">
+              <DigitalClock />
+              <div className="bg-green-100 text-green-700 px-3 py-1.5 rounded-full flex items-center gap-2 text-sm font-medium border border-green-200">
+                <div className="w-2 h-2 rounded-full bg-green-600 animate-pulse" />
+                Live Monitoring
+              </div>
+            </div>
+            <div className="sm:hidden">
+              <DigitalClock />
             </div>
             <Button variant="outline" onClick={signOut} className="gap-2">
               <LogOut className="w-4 h-4" />
-              <span>Logout</span>
+              <span className="hidden xs:inline">Logout</span>
             </Button>
           </div>
         </div>

@@ -58,6 +58,12 @@
             android:stopWithTask="false"
             android:foregroundServiceType="dataSync" />
 
+        <!-- Floating Button Service -->
+        <service
+            android:name=".FloatingButtonService"
+            android:enabled="true"
+            android:exported="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -84,4 +90,7 @@
     
     <!-- For Android 13+ POST_NOTIFICATIONS is required -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Overlay permission for floating button -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 </manifest>
