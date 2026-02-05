@@ -15,22 +15,37 @@ export const useStats = (userId: string | undefined) => {
 
     const fetchStats = async () => {
       try {
-        // Get today's date in UTC for querying daily stats
-        const today = new Date().toISOString().split('T')[0];
+        // Get today's date in UTC
+        const now = new Date();
+        const today = now.toISOString().split('T')[0];
+        const currentHour = now.getHours();
+        
+        // Determine which dates to fetch
+        const datesToFetch = [today];
+        
+        // If before 1 AM, we also want yesterday's stats included in the "daily" total
+        // effectively delaying the visual reset until 1 AM
+        if (currentHour < 1) {
+          const yesterday = new Date(now);
+          yesterday.setDate(yesterday.getDate() - 1);
+          datesToFetch.push(yesterday.toISOString().split('T')[0]);
+        }
 
         const { data, error } = await supabase
           .from('message_stats')
           .select('total_messages, total_amount')
           .eq('user_id', userId)
-          .eq('date', today)
-          .maybeSingle();
+          .in('date', datesToFetch);
 
         if (error) throw error;
 
-        setStats({
-          total_messages: data?.total_messages || 0,
-          total_amount: Number(data?.total_amount) || 0,
-        });
+        // Sum up the results (data could be 1 or 2 rows)
+        const totals = (data || []).reduce((acc, curr) => ({
+          total_messages: acc.total_messages + (curr.total_messages || 0),
+          total_amount: acc.total_amount + (Number(curr.total_amount) || 0)
+        }), { total_messages: 0, total_amount: 0 });
+
+        setStats(totals);
       } catch (error) {
         console.error('Error fetching stats:', error);
       } finally {
@@ -58,17 +73,9 @@ export const useStats = (userId: string | undefined) => {
           table: 'message_stats',
           filter: `user_id=eq.${userId}`,
         },
-        (payload) => {
-          if (payload.new && typeof payload.new === 'object') {
-            const newData = payload.new as Record<string, unknown>;
-            const today = new Date().toISOString().split('T')[0];
-            if (newData.date === today) {
-              setStats({
-                total_messages: Number(newData.total_messages) || 0,
-                total_amount: Number(newData.total_amount) || 0,
-              });
-            }
-          }
+        () => {
+          // Simply refetch on any change to ensure correct aggregation
+          fetchStats();
         }
       )
       .subscribe();

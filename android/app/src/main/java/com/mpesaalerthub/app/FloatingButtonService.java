@@ -30,8 +30,8 @@ public class FloatingButtonService extends Service {
         floatingButton.setPadding(20, 20, 20, 20);
 
         final WindowManager.LayoutParams params = new WindowManager.LayoutParams(
-                WindowManager.LayoutParams.WRAP_CONTENT,
-                WindowManager.LayoutParams.WRAP_CONTENT,
+                (int) (60 * getResources().getDisplayMetrics().density),
+                (int) (60 * getResources().getDisplayMetrics().density),
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
                         ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                         : WindowManager.LayoutParams.TYPE_PHONE,
@@ -62,8 +62,8 @@ public class FloatingButtonService extends Service {
                         int diffX = (int) (event.getRawX() - initialTouchX);
                         int diffY = (int) (event.getRawY() - initialTouchY);
 
-                        // Swipe to dismiss logic (e.g., swipe right more than 200px)
-                        if (Math.abs(diffX) > 300) {
+                        // Swipe to dismiss logic (swipe down more than 150px)
+                        if (diffY > 150) {
                             stopSelf();
                             return true;
                         }
