@@ -167,6 +167,23 @@ export const useMessages = (userId: string | undefined) => {
 
   const deleteAllMessages = async () => {
     try {
+      // 1. Delete receipts first (to avoid FK issues if any)
+      const { error: receiptsError } = await supabase
+        .from('receipts')
+        .delete()
+        .eq('user_id', userId);
+
+      if (receiptsError) throw receiptsError;
+
+      // 2. Delete message stats (balances)
+      const { error: statsError } = await supabase
+        .from('message_stats')
+        .delete()
+        .eq('user_id', userId);
+
+      if (statsError) throw statsError;
+
+      // 3. Finally delete the messages
       const { error } = await supabase
         .from('messages')
         .delete()
