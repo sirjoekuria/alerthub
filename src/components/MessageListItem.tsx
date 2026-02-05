@@ -68,7 +68,12 @@ export const MessageListItem = ({
     // In a real app, you'd map names to specific image assets
     // For now, we return a generic icon with a colored background
     // random color based on name length
-    const colors = ["bg-orange-100 text-orange-600", "bg-blue-100 text-blue-600", "bg-green-100 text-green-600", "bg-purple-100 text-purple-600"];
+    const colors = [
+      "bg-orange-500/15 text-orange-500 dark:bg-orange-500/20 dark:text-orange-400",
+      "bg-blue-500/15 text-blue-500 dark:bg-blue-500/20 dark:text-blue-400",
+      "bg-green-500/15 text-green-500 dark:bg-green-500/20 dark:text-green-400",
+      "bg-purple-500/15 text-purple-500 dark:bg-purple-500/20 dark:text-purple-400"
+    ];
     const colorIndex = name.length % colors.length;
 
     return (
@@ -85,7 +90,7 @@ export const MessageListItem = ({
       onPointerUp={clearPressTimer}
       onPointerLeave={clearPressTimer}
       className={cn(
-        "group relative mb-3 mx-2 overflow-hidden border transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md bg-white",
+        "group relative mb-3 mx-2 overflow-hidden border transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md bg-card",
         !message.is_read ? "border-l-4 border-l-primary" : "border-border",
         isSelected && "ring-2 ring-primary ring-offset-2"
       )}
@@ -102,7 +107,7 @@ export const MessageListItem = ({
                 className="mr-2"
               />
             )}
-            <h3 className="font-bold text-base text-gray-900 truncate max-w-[180px] sm:max-w-xs uppercase">
+            <h3 className="font-bold text-base text-foreground truncate max-w-[180px] sm:max-w-xs uppercase">
               {message.sender_name || "Unknown"}
             </h3>
             {!message.is_read && (
@@ -114,15 +119,15 @@ export const MessageListItem = ({
 
           {/* Amount */}
           <div>
-            <span className="text-xl font-bold text-green-600 block">
+            <span className="text-xl font-bold text-primary block">
               {formatCurrency(message.amount)}
             </span>
           </div>
 
           {/* Code */}
           <div className="flex items-center gap-2">
-            <span className="text-gray-500 text-xs">Code:</span>
-            <Badge variant="secondary" className="font-mono text-xs px-2 py-0.5 bg-gray-100 text-gray-700 hover:bg-gray-200">
+            <span className="text-muted-foreground text-xs">Code:</span>
+            <Badge variant="secondary" className="font-mono text-xs px-2 py-0.5 bg-muted text-muted-foreground hover:bg-muted/80">
               {message.mpesa_code || "N/A"}
             </Badge>
           </div>
@@ -130,7 +135,7 @@ export const MessageListItem = ({
 
         {/* Right Section */}
         <div className="flex flex-col items-end justify-between h-auto gap-4">
-          <span className="text-xs text-gray-500 whitespace-nowrap">
+          <span className="text-xs text-muted-foreground whitespace-nowrap">
             {formatDate(message.received_timestamp)}
           </span>
           {getLogo(message.sender_name || "")}
