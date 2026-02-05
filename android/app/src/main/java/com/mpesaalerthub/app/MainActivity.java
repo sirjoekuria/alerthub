@@ -76,14 +76,14 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    protected void onPause() {
+    public void onPause() {
         super.onPause();
         // Start floating button when app is minimized
         startFloatingButtonService();
     }
 
     @Override
-    protected void onResume() {
+    public void onResume() {
         super.onResume();
         // Stop floating button when app is in foreground
         stopFloatingButtonService();
