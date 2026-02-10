@@ -11,6 +11,7 @@ declare global {
             clearCredentials: () => void;
             getOfflineQueue: () => string;
             clearOfflineQueue: () => void;
+            removeFromOfflineQueue: (mpesaCodesJson: string) => void;
             hasRequiredPermissions: () => boolean;
         };
     }
@@ -90,6 +91,22 @@ export const clearNativeOfflineQueue = (): void => {
             console.log('Native offline queue cleared');
         } catch (error) {
             console.error('Failed to clear native offline queue:', error);
+        }
+    }
+};
+
+/**
+ * Remove specific messages from the native offline queue
+ * @param mpesaCodes Array of M-Pesa codes to remove
+ */
+export const removeFromNativeOfflineQueue = (mpesaCodes: string[]): void => {
+    if (isBackgroundServiceAvailable()) {
+        try {
+            const mpesaCodesJson = JSON.stringify(mpesaCodes);
+            window.BackgroundService!.removeFromOfflineQueue(mpesaCodesJson);
+            console.log(`Removed ${mpesaCodes.length} messages from native offline queue`);
+        } catch (error) {
+            console.error('Failed to remove messages from native offline queue:', error);
         }
     }
 };

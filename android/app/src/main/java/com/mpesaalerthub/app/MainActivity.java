@@ -242,6 +242,42 @@ public class MainActivity extends BridgeActivity {
         }
 
         @JavascriptInterface
+        public void removeFromOfflineQueue(String mpesaCodesJson) {
+            try {
+                SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+                String existingQueue = prefs.getString("offline_queue", "[]");
+
+                org.json.JSONArray queueArray = new org.json.JSONArray(existingQueue);
+                org.json.JSONArray codesToRemove = new org.json.JSONArray(mpesaCodesJson);
+                org.json.JSONArray newQueue = new org.json.JSONArray();
+
+                // Filter out messages with mpesa_codes in the removal list
+                for (int i = 0; i < queueArray.length(); i++) {
+                    org.json.JSONObject item = queueArray.getJSONObject(i);
+                    String mpesaCode = item.optString("mpesa_code");
+
+                    boolean shouldRemove = false;
+                    for (int j = 0; j < codesToRemove.length(); j++) {
+                        if (mpesaCode.equals(codesToRemove.getString(j))) {
+                            shouldRemove = true;
+                            break;
+                        }
+                    }
+
+                    if (!shouldRemove) {
+                        newQueue.put(item);
+                    }
+                }
+
+                prefs.edit().putString("offline_queue", newQueue.toString()).apply();
+                Log.d(TAG, "Removed " + codesToRemove.length() + " messages from offline queue. " +
+                        newQueue.length() + " messages remaining.");
+            } catch (Exception e) {
+                Log.e(TAG, "Error removing messages from offline queue", e);
+            }
+        }
+
+        @JavascriptInterface
         public boolean hasRequiredPermissions() {
             return ContextCompat.checkSelfPermission(MainActivity.this,
                     Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED &&

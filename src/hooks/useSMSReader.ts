@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import {
     getNativeOfflineQueue,
     clearNativeOfflineQueue,
+    removeFromNativeOfflineQueue,
     isBackgroundServiceAvailable
 } from '@/utils/backgroundService';
 
@@ -97,20 +98,10 @@ export const useSMSReader = () => {
 
         // Only clear successfully processed messages from the native queue
         if (isBackgroundServiceAvailable() && fullySyncedCodes.length > 0) {
-            // NOTE: The current native interface only has clearOfflineQueue() which clears ALL.
-            // Ideally we'd have a removeItems(codes) method. 
-            // Since we don't, if we processed SOME but not ALL, we have a challenge.
-            // For now, if we processed at least one, we'll clear and hope for the best, 
-            // OR we can implement a more robust partial clear if we update the native interface.
-
-            // To be safe, if we processed ALL items in the queue, we clear.
-            if (fullySyncedCodes.length >= nativeQueue.length) {
-                clearNativeOfflineQueue();
-            } else {
-                console.warn(`Only synced ${fullySyncedCodes.length}/${nativeQueue.length} messages. Remaining will stay in native queue.`);
-                // We need a way to clear ONLY synced ones. Since clearOfflineQueue clears all,
-                // we should probably leave them all if some failed, OR update the native code.
-            }
+            // Use selective removal to only remove successfully synced messages
+            // This allows failed messages to remain in the queue for retry
+            removeFromNativeOfflineQueue(fullySyncedCodes);
+            console.log(`Removed ${fullySyncedCodes.length} successfully synced messages from queue`);
         }
 
         if (syncedCount > 0) {

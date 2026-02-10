@@ -118,6 +118,13 @@ public class SMSProcessingService extends Service {
                         return;
                     }
 
+                    // Check if already in offline queue (waiting for retry)
+                    if (isInOfflineQueue(transaction.mpesaCode)) {
+                        Log.d(TAG, "Already in offline queue: " + transaction.mpesaCode);
+                        stopSelf();
+                        return;
+                    }
+
                     // Mark as processing
                     recentlyProcessed.add(transaction.mpesaCode);
 
@@ -191,6 +198,24 @@ public class SMSProcessingService extends Service {
 
         prefs.edit().putString(PREFS_PROCESSED, newCodes.toString()).apply();
         Log.d(TAG, "Marked as processed: " + mpesaCode);
+    }
+
+    private boolean isInOfflineQueue(String mpesaCode) {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        String existingQueue = prefs.getString("offline_queue", "[]");
+
+        try {
+            JSONArray queueArray = new JSONArray(existingQueue);
+            for (int i = 0; i < queueArray.length(); i++) {
+                JSONObject item = queueArray.getJSONObject(i);
+                if (mpesaCode.equals(item.optString("mpesa_code"))) {
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error checking offline queue", e);
+        }
+        return false;
     }
 
     private MpesaTransaction parseMpesaMessage(String message, String sender) {
@@ -318,14 +343,14 @@ public class SMSProcessingService extends Service {
 
             // Construct edge function URL
             String edgeFunctionUrl = supabaseUrl.replace(".supabase.co", ".supabase.co/functions/v1/sms-ingest");
-            
+
             URL url = new URL(edgeFunctionUrl);
             connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("POST");
             connection.setRequestProperty("Content-Type", "application/json");
             connection.setRequestProperty("apikey", supabaseKey);
             // Use access token if available, otherwise use anon key
-            connection.setRequestProperty("Authorization", 
+            connection.setRequestProperty("Authorization",
                     "Bearer " + (accessToken != null && !accessToken.isEmpty() ? accessToken : supabaseKey));
             connection.setConnectTimeout(30000);
             connection.setReadTimeout(30000);
@@ -618,6 +643,12 @@ public class SMSProcessingService extends Service {
                 }
             }
 
+            // Also check if already processed (to prevent re-queuing on app restart)
+            if (isAlreadyProcessed(transaction.mpesaCode)) {
+                Log.d(TAG, "Message already processed, not queuing: " + transaction.mpesaCode);
+                return;
+            }
+
             JSONObject json = new JSONObject();
             json.put("mpesa_code", transaction.mpesaCode);
             json.put("amount", transaction.amount);
@@ -633,6 +664,11 @@ public class SMSProcessingService extends Service {
 
             prefs.edit().putString("offline_queue", queueArray.toString()).apply();
             Log.d(TAG, "Message queued for later sync: " + transaction.mpesaCode);
+
+            // Mark as recently processed to prevent immediate re-queuing
+            recentlyProcessed.add(transaction.mpesaCode);
+            // Clear from memory after 2 minutes (longer than normal to prevent re-queue)
+            new Handler().postDelayed(() -> recentlyProcessed.remove(transaction.mpesaCode), 120000);
 
         } catch (Exception e) {
             Log.e(TAG, "Error queuing message", e);
