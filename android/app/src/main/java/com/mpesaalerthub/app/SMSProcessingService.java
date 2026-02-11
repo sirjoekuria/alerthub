@@ -301,13 +301,21 @@ public class SMSProcessingService extends Service {
 
     private String parseDateTime(String dateStr, String timeStr) {
         try {
+            // M-Pesa SMS uses local East Africa Time (EAT) which is UTC+3
             SimpleDateFormat inputFormat = new SimpleDateFormat("d/M/yy h:mm a", Locale.US);
+            inputFormat.setTimeZone(java.util.TimeZone.getTimeZone("Africa/Nairobi"));
+
+            // Output format should be UTC ISO 8601 with 'Z' suffix
             SimpleDateFormat outputFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
+            outputFormat.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+
             Date date = inputFormat.parse(dateStr + " " + timeStr);
             return outputFormat.format(date);
         } catch (Exception e) {
             Log.e(TAG, "Error parsing date", e);
-            return new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).format(new Date());
+            SimpleDateFormat fallbackFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
+            fallbackFormat.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+            return fallbackFormat.format(new Date());
         }
     }
 
@@ -359,7 +367,11 @@ public class SMSProcessingService extends Service {
             JSONObject json = new JSONObject();
             json.put("sender", transaction.smsSender);
             json.put("message", transaction.originalText);
-            json.put("timestamp", new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).format(new Date()));
+
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
+            dateFormat.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+            json.put("timestamp", dateFormat.format(new Date()));
+
             json.put("userId", userId);
 
             String jsonString = json.toString();
@@ -451,8 +463,11 @@ public class SMSProcessingService extends Service {
             json.put("amount", transaction.amount);
             json.put("sender_name", transaction.senderName);
             json.put("transaction_date", transaction.transactionDate);
-            json.put("received_timestamp",
-                    new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).format(new Date()));
+
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
+            dateFormat.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+            json.put("received_timestamp", dateFormat.format(new Date()));
+
             json.put("original_text", transaction.originalText);
             json.put("sms_sender", transaction.smsSender);
             json.put("is_read", false);
@@ -654,11 +669,17 @@ public class SMSProcessingService extends Service {
             json.put("amount", transaction.amount);
             json.put("sender_name", transaction.senderName);
             json.put("transaction_date", transaction.transactionDate);
-            json.put("received_timestamp",
-                    new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).format(new Date()));
+
+            SimpleDateFormat dateFormatFull = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
+            dateFormatFull.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+            json.put("received_timestamp", dateFormatFull.format(new Date()));
+
             json.put("original_text", transaction.originalText);
             json.put("sms_sender", transaction.smsSender);
-            json.put("queued_at", new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).format(new Date()));
+
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
+            dateFormat.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+            json.put("queued_at", dateFormat.format(new Date()));
 
             queueArray.put(json);
 
