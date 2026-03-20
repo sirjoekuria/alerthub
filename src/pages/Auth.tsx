@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Smartphone, AlertCircle } from "lucide-react";
+import { Smartphone, AlertCircle, Download } from "lucide-react";
 import { loginSchema, signupSchema, resetPasswordSchema, type LoginInput, type SignupInput, type ResetPasswordInput } from "@/lib/validations";
 import { PasswordStrengthMeter } from "@/components/PasswordStrengthMeter";
 
@@ -141,7 +141,7 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/10 p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/10 p-4">
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center space-y-4">
           <div className="mx-auto w-16 h-16 bg-primary rounded-2xl flex items-center justify-center">
@@ -257,6 +257,22 @@ const Auth = () => {
           </Tabs>
         </CardContent>
       </Card>
+      
+      <div className="mt-8 text-center animate-in fade-in slide-in-from-bottom-4 duration-1000">
+        <Button 
+          variant="outline" 
+          className="gap-2 bg-background/50 backdrop-blur-sm border-primary/20 hover:border-primary/50 transition-all duration-300"
+          asChild
+        >
+          <a href="/mpesa-monitor.apk" download>
+            <Download className="w-4 h-4 text-primary" />
+            <span>Download Android App</span>
+          </a>
+        </Button>
+        <p className="text-xs text-muted-foreground mt-2">
+          Get the mobile app for a better experience
+        </p>
+      </div>
     </div>
   );
 };
