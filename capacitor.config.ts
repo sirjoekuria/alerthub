@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.mpesaalerthub.app',
-  appName: 'mpesa-alert-hub',
+  appName: 'Alerthub',
   webDir: 'dist',
   server: {
     url: 'https://mpesa-alert-hub.vercel.app',
