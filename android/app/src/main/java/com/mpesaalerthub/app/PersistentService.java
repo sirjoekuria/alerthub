@@ -15,6 +15,7 @@ import android.util.Log;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
+import android.content.pm.ServiceInfo;
 
 /**
  * Persistent foreground service that keeps the app alive in the background.
@@ -43,7 +44,11 @@ public class PersistentService extends Service {
         Log.d(TAG, "PersistentService started");
         
         // Start as foreground service with persistent notification
-        startForeground(NOTIFICATION_ID, createNotification());
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(NOTIFICATION_ID, createNotification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
+        } else {
+            startForeground(NOTIFICATION_ID, createNotification());
+        }
         
         // Return START_STICKY to restart service if killed
         return START_STICKY;
@@ -137,13 +142,9 @@ public class PersistentService extends Service {
             }
         }
         
-        // Restart the service if it's destroyed
-        Intent restartIntent = new Intent(this, PersistentService.class);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(restartIntent);
-        } else {
-            startService(restartIntent);
-        }
+        // Restarting service from onDestroy is restricted on Android 12+
+        // and can cause ForegroundServiceStartNotAllowedException if app is in background.
+        // We rely on START_STICKY and other mechanisms (like BootReceiver) instead.
         
         super.onDestroy();
     }
@@ -152,13 +153,8 @@ public class PersistentService extends Service {
     public void onTaskRemoved(Intent rootIntent) {
         Log.d(TAG, "Task removed - restarting service...");
         
-        // Restart service when app is swiped away
-        Intent restartIntent = new Intent(this, PersistentService.class);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(restartIntent);
-        } else {
-            startService(restartIntent);
-        }
+        // Restarting service from onTaskRemoved is restricted on Android 12+
+        // if the app was just swiped away. Relying on START_STICKY.
         
         super.onTaskRemoved(rootIntent);
     }

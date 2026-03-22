@@ -16,6 +16,7 @@ import android.util.Log;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
+import android.content.pm.ServiceInfo;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -70,7 +71,11 @@ public class SMSProcessingService extends Service {
         Log.d(TAG, "SMSProcessingService onStartCommand");
 
         // Start as foreground service
-        startForeground(NOTIFICATION_ID, createNotification("Processing M-Pesa transaction..."));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(NOTIFICATION_ID, createNotification("Processing M-Pesa transaction..."), ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
+        } else {
+            startForeground(NOTIFICATION_ID, createNotification("Processing M-Pesa transaction..."));
+        }
 
         if (intent != null) {
             String sender = intent.getStringExtra("sender");

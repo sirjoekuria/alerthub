@@ -16,6 +16,7 @@ import android.webkit.WebView;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.splashscreen.SplashScreen;
 
 import com.getcapacitor.BridgeActivity;
 
@@ -34,6 +35,9 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // Install splash screen before super.onCreate()
+        SplashScreen.installSplashScreen(this);
+        
         super.onCreate(savedInstanceState);
         instance = this;
 
@@ -45,9 +49,6 @@ public class MainActivity extends BridgeActivity {
 
         // Check for overlay permission
         checkOverlayPermission();
-
-        // Start the persistent background service
-        startPersistentService();
 
         // Add JavaScript interface for the web app to communicate with native code
         setupJavascriptInterface();
