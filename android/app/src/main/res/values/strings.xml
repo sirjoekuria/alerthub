@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">mpesa-alert-hub</string>
-    <string name="title_activity_main">mpesa-alert-hub</string>
+    <string name="app_name">Alerthub</string>
+    <string name="title_activity_main">Alerthub</string>
     <string name="package_name">com.mpesaalerthub.app</string>
     <string name="custom_url_scheme">com.mpesaalerthub.app</string>
 </resources>
